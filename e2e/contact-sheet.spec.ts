@@ -9,8 +9,10 @@ test("the dev contact sheet renders every blank and its printable area", async (
     await expect(page.getByText(`${caption} · white · printable area outlined`)).toBeVisible();
   }
 
+  // Six blanks, four layered examples, two picker demos. The picker's own
+  // option previews are aria-hidden, so they do not appear here.
   const mockups = page.getByRole("img");
-  await expect(mockups).toHaveCount(10);
+  await expect(mockups).toHaveCount(12);
   await expect(mockups.first()).toHaveAttribute("aria-label", "Blank black t-shirt");
 
   // Artwork must be inlined: an external href silently exports a blank garment.
