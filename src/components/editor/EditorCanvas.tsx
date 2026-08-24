@@ -99,14 +99,14 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
   const box = selected ? layerBox(selected, design.garment, size) : null;
 
   /** Pointer position in canvas pixels, measured from the artwork's centre. */
-  function centreOffset(event: ReactPointerEvent<SVGCircleElement>) {
+  function centreOffset(event: ReactPointerEvent<SVGGeometryElement>) {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect || !box) return null;
     return { dx: event.clientX - rect.left - box.cx, dy: event.clientY - rect.top - box.cy };
   }
 
   function startTransform(
-    event: ReactPointerEvent<SVGCircleElement>,
+    event: ReactPointerEvent<SVGGeometryElement>,
     kind: "scale" | "rotate",
   ) {
     event.preventDefault();
@@ -115,7 +115,7 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function onTransform(event: ReactPointerEvent<SVGCircleElement>) {
+  function onTransform(event: ReactPointerEvent<SVGGeometryElement>) {
     if (!selected || !transform.current) return;
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
     const offset = centreOffset(event);
@@ -140,7 +140,7 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
     });
   }
 
-  function endTransform(event: ReactPointerEvent<SVGCircleElement>) {
+  function endTransform(event: ReactPointerEvent<SVGGeometryElement>) {
     transform.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -154,7 +154,7 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
       stroke: "#2563eb",
       strokeWidth: 2,
       style: { cursor: kind === "scale" ? "nwse-resize" : "grab", touchAction: "none" as const },
-      onPointerDown: (event: ReactPointerEvent<SVGCircleElement>) =>
+      onPointerDown: (event: ReactPointerEvent<SVGGeometryElement>) =>
         startTransform(event, kind),
       onPointerMove: onTransform,
       onPointerUp: endTransform,
@@ -244,6 +244,24 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
               y2={box.cy - box.height / 2 - ROTATE_ARM}
               stroke="#2563eb"
               strokeWidth={2}
+              style={{ pointerEvents: "none" }}
+            />
+            {/* The visible arm is 2px wide. This invisible one is a grabbable
+                target, so pressing the arm rotates instead of falling through
+                to the canvas, which reads a press off the artwork as
+                "deselect". */}
+            <line
+              x1={box.cx}
+              y1={box.cy - box.height / 2}
+              x2={box.cx}
+              y2={box.cy - box.height / 2 - ROTATE_ARM}
+              stroke="transparent"
+              strokeWidth={HANDLE_RADIUS * 2}
+              style={{ cursor: "grab", touchAction: "none" }}
+              onPointerDown={(event) => startTransform(event, "rotate")}
+              onPointerMove={onTransform}
+              onPointerUp={endTransform}
+              onPointerCancel={endTransform}
             />
             <circle
               cx={box.cx}

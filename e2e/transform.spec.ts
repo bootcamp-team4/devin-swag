@@ -26,6 +26,15 @@ test("the corner handle scales the selected artwork", async ({ page }) => {
   expect(after!.width).toBeGreaterThan(before!.width + 10);
 });
 
+test("pressing the rotate arm does not deselect the artwork", async ({ page }) => {
+  await place(page);
+  const arm = page.locator("line[stroke='#2563eb']");
+  const box = (await arm.boundingBox())!;
+
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(page.locator("circle[style*='nwse-resize']")).toBeVisible();
+});
+
 test("scale and rotation are reachable from the keyboard and the buttons", async ({ page }) => {
   await place(page);
   await expect(readout(page)).toHaveText("45% · 0°");
