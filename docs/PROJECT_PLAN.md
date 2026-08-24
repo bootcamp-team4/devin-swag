@@ -113,7 +113,7 @@ Accounts/auth, admin UI, database, real payments, tax/shipping engines, print-on
 | Dependency | Owner | Needed by | Status |
 |---|---|---|---|
 | Repo + write access | Gina | T1 | Done — `bootcamp-team4/devin-swag` |
-| **Otter mascot artwork (SVG, black + white)** | Rush | T4 — blocks a third of the catalog | **Missing from the press kit — open blocker** |
+| Otter mascot artwork | Rush | T4 | **Resolved** — supplied by Robin, committed at `assets/brand/mark-otter.png` (400×400 RGB). Two follow-ons in T4: it needs an alpha channel (it ships on a white matte) and it is full-colour, so it is the one mark that does not invert for the black colourway |
 | Confirmed prices for tee / hoodie / cap | Rush | T2 | Placeholders in use |
 | Vercel account/team for deploys | Robin | T11 | Open |
 | Brand approval on generated mockups | Rush → Marketing | before external sharing | Open |
@@ -122,12 +122,12 @@ Accounts/auth, admin UI, database, real payments, tax/shipping engines, print-on
 | Risk | Impact | Mitigation |
 |---|---|---|
 | No product photography exists | Store looks unfinished; blocks external sharing | Generated SVG mockups (M6); treat photography as a later swap behind one component |
-| **Otter mascot asset not available** | A third of the catalog cannot render; the differentiating product is the one missing | Ship Cognition + Devin first (T4 is structured so marks are additive); if the otter has not arrived by T7, cut it to optional scope and demo six combinations, not nine |
-| Mark invisible against the garment (black on black) | Mockups look broken | Contrast rule in the mockup engine, both colourways of every mark required at asset intake |
+| Otter is a 400×400 raster with a white matte, while the other marks are vector and monochrome | Visible white box on black garments; soft edges on a hoodie-sized print | T4 keys background removal and print scale off the asset type; 400px is adequate for on-screen mockups but not for real print, so a vector or ≥2000px otter is a prerequisite for any actual production run (out of demo scope) |
+| Mark invisible against the garment (black on black) | Mockups look broken | Contrast rule in the mockup engine: monochrome marks are inverted per colourway, the full-colour otter keeps its palette and is checked against both garments by eye |
 | Only 3 garments makes the catalog look thin | Demo feels like a stub | Lean into it — present it as a curated capsule drop; the grid shows 9 garment × mark tiles, which reads as a full catalogue page |
 | Mockup engine (T4) is the one genuinely hard piece and it is now on the critical path | Slips the whole demo | It is the only ticket sized L before T7, it is parallelized as PR 4, and the fallback is a flat wordmark-on-colour tile that satisfies every DoD item except visual polish |
 | Demo mistaken for a real store — someone tries to buy | Trust/support problem | M4 of DoD: persistent demo banner, no card fields, confirmation copy states nothing was charged |
-| Brand misuse of press-kit assets | Marketing rework | Use assets unmodified, monochrome palette only; brand review before external sharing |
+| Brand misuse of press-kit assets | Marketing rework | Use assets unmodified — no recolouring, no redrawing; brand review before external sharing |
 | Fake prices/product names leak into a public deck as fact | Misleading stakeholders | Label placeholder copy in the UI until Marketing supplies the real list |
 | Scope creep toward real commerce | Blows the demo timebox | O8 is explicitly optional and gated behind the commerce seam |
 
@@ -180,11 +180,11 @@ Estimates are in Devin sessions (S ≈ ¼, M ≈ ½, L ≈ 1). "Owner" is the hu
 | ID | Title | Owner | Surface | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|---|
 | T0 | Repo + Vercel access | Gina | — | — | — | Repo exists with all leads and Devin as collaborators; branch protection on `main` requiring one review and green CI; Vercel project connected or an explicit "no deploy" decision recorded |
-| T0b | **Source the otter mascot artwork** | Rush | — | — | — | Otter supplied as SVG in black and white, cleared for merch use, dropped into `public/brand`; if unavailable by the start of T7, the otter is formally cut to optional scope |
+| T0b | Source the otter mascot artwork | Rush | — | — | — | **Done** — asset in repo at `assets/brand/mark-otter.png`; alpha-channel and colour-on-black handling folded into T4 |
 | T1 | Scaffold app, CI, brand tokens | Gina | Cloud | M | T0 | Next.js 16 + TS + Tailwind builds; lint/typecheck/build green in GitHub Actions; press-kit assets committed under `public/brand`; monochrome tokens defined; README with run instructions |
 | T2 | Product matrix data model | Gina | Cloud | M | T1 | `src/lib/products.ts` generates the garment × colour × mark × size matrix from three garment definitions and three mark definitions — no hand-listed SKUs; SKU format `TEE-BLACK-OTTER-L`; prices integer cents per garment; unit tests cover SKU generation, lookup, and price maths; adding a fourth mark is a one-line change (test proves it) |
 | T3 | App shell: header, footer, demo banner | Robin | Cloud | S | T1 | Header with wordmark, nav, cart badge; footer; demo banner on every page; responsive at 360px; full keyboard navigation |
-| T4 | Mockup rendering engine | Rush | Cloud + Desktop | L | T1, T0b | `<Mockup garment color mark />` renders all 18 combinations distinctly at grid and detail sizes; garment silhouettes for tee, hoodie, cap; marks used unmodified and auto-contrasted against the garment colour; no external image requests; alt text describes garment, colour, and mark; contact-sheet screenshot of all 18 attached to the PR |
+| T4 | Mockup rendering engine | Rush | Cloud + Desktop | L | T1, T0b | `<Mockup garment color mark />` renders all 18 combinations distinctly at grid and detail sizes; garment silhouettes for tee, hoodie, cap; marks used unmodified and auto-contrasted against the garment colour (the otter is full-colour and keeps its palette on both colourways; its white matte is removed so no box shows on black); no external image requests; alt text describes garment, colour, and mark; contact-sheet screenshot of all 18 attached to the PR |
 | T5 | Home page | Rush | Cloud | S | T2, T3, T4 | Hero, the three garments, the three marks as entry points into a filtered catalog; Lighthouse ≥90 perf / ≥95 a11y |
 | T6 | Catalog: grid + filters | Rush | Cloud | M | T2, T3, T4 | Grid of the 9 garment × mark tiles; filter by garment and by mark; colour toggle switches every tile; state in the URL and survives refresh and sharing; empty state with reset; result count announced to screen readers |
 | T7 | Product detail page + mark picker | Rush | Cloud | L | T6 | Mark, colour, and size pickers each update the mockup, the price where relevant, and the URL without a full reload; deep link `?mark=otter&color=black` restores exact state; size chart on garments; caps have no size picker; add-to-cart feedback names the chosen combination |
@@ -241,7 +241,7 @@ The demonstration is the deliverable; anything that threatens it gets cut. Agree
 | Any PR exceeds ~400 lines or two sessions | Split it; PR 7 splits into cart state vs. cart page, PR 8 into checkout form vs. confirmation |
 | The must-have set is not on track with a third of the time left | Cut in this order: PR 9 e2e → PR 4 rich mockups (fall back to flat colour tiles) → PR 6 size chart and gallery |
 | The real product list has not arrived | Ship with clearly-labelled placeholder copy; do not block the demo |
-| Otter artwork not cleared in time | Cut to two marks (Cognition, Devin) — 12 combinations; the matrix makes re-adding it a one-line change later |
+| Otter cannot be made to read well on black | Restrict the otter to the white colourway — the matrix supports per-mark colour availability |
 | Vercel access does not materialise | Demo runs locally from the CLI; drop DoD item 8's hosted-URL requirement |
 | Mockup quality is not brand-acceptable | Fall back to wordmark-on-colour tiles; the mockup component is isolated for exactly this reason |
 | Anyone proposes real payments before T11 | Declined — it is optional scope T15 and lives behind the seam |
@@ -261,12 +261,11 @@ Queued questions rather than guesses, one per topic:
 | # | Action | Owner | Unblocks |
 |---|---|---|---|
 | 1 | Branch protection on `main`; confirm or decline Vercel | Gina | Merges, T11 |
-| 2 | **Source the otter mascot artwork** (SVG, black + white, cleared for merch) | Rush | T4 — a third of the catalog |
-| 3 | Approve this plan's scope, the 3×2×3 matrix, and the DoD | Rush | T1 |
-| 4 | File T0–T15 with these acceptance criteria; stand up the board | Robin | Tracking |
-| 5 | Confirm tee / hoodie / cap prices | Rush | T12 |
-| 6 | On approval: PR 1, then PRs 2–4 in parallel | Gina / Rush / Robin | The build |
+| 2 | Approve this plan's scope, the 3×2×3 matrix, and the DoD | Rush | T1 |
+| 3 | File T0–T15 with these acceptance criteria; stand up the board | Robin | Tracking |
+| 4 | Confirm tee / hoodie / cap prices | Rush | T12 |
+| 5 | On approval: PR 1, then PRs 2–4 in parallel | Gina / Rush / Robin | The build |
 
 ### Current state
-- Brand assets pulled from the Drive press kit: Cognition and Devin wordmarks and avatars (SVG + PNG, black and white), four sticker artworks (PDF), two Devin interface screenshots. Monochrome kit, **no product photography** — the reason M6/T4 exists. Two of the three required marks are covered; **the otter mascot is not in the kit** (T0b).
+- Brand assets pulled from the Drive press kit: Cognition and Devin wordmarks and avatars (SVG + PNG, black and white), four sticker artworks (PDF), two Devin interface screenshots. Monochrome kit, **no product photography** — the reason M6/T4 exists. The otter mascot is not in the kit — supplied separately by Robin and committed at `assets/brand/mark-otter.png`.
 - No implementation work has been done. An exploratory Next.js scaffold exists on the Devin VM only; it is reference material, and PR 1 starts clean in this repo.
