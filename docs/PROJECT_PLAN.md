@@ -113,7 +113,7 @@ Accounts/auth, admin UI, database, real payments, tax/shipping engines, print-on
 | Dependency | Owner | Needed by | Status |
 |---|---|---|---|
 | Repo + write access | Gina | T1 | Done — `bootcamp-team4/devin-swag` |
-| Otter mascot artwork | Rush | T4 | **Resolved** — supplied by Robin, committed at `assets/brand/mark-otter.png` (400×400 RGB). Two follow-ons in T4: it needs an alpha channel (it ships on a white matte) and it is full-colour, so it is the one mark that does not invert for the black colourway |
+| Otter mascot artwork | Rush | T4 | **Resolved** — supplied by Robin, committed at `public/brand/mark-otter.png` (400×400 RGB). Two follow-ons in T4: it needs an alpha channel (it ships on a white matte) and it is full-colour, so it is the one mark that does not invert for the black colourway |
 | Confirmed prices for tee / hoodie / cap | Rush | T2 | Placeholders in use |
 | Vercel account/team for deploys | Robin | T11 | Open |
 | Brand approval on generated mockups | Rush → Marketing | before external sharing | Open |
@@ -180,7 +180,7 @@ Estimates are in Devin sessions (S ≈ ¼, M ≈ ½, L ≈ 1). "Owner" is the hu
 | ID | Title | Owner | Surface | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|---|
 | T0 | Repo + Vercel access | Gina | — | — | — | Repo exists with all leads and Devin as collaborators; branch protection on `main` requiring one review and green CI; Vercel project connected or an explicit "no deploy" decision recorded |
-| T0b | Source the otter mascot artwork | Rush | — | — | — | **Done** — asset in repo at `assets/brand/mark-otter.png`; alpha-channel and colour-on-black handling folded into T4 |
+| T0b | Source the otter mascot artwork | Rush | — | — | — | **Done** — asset in repo at `public/brand/mark-otter.png`; alpha-channel and colour-on-black handling folded into T4 |
 | T1 | Scaffold app, CI, brand tokens | Gina | Cloud | M | T0 | Next.js 16 + TS + Tailwind builds; lint/typecheck/build green in GitHub Actions; press-kit assets committed under `public/brand`; monochrome tokens defined; README with run instructions |
 | T2 | Product matrix data model | Gina | Cloud | M | T1 | `src/lib/products.ts` generates the garment × colour × mark × size matrix from three garment definitions and three mark definitions — no hand-listed SKUs; SKU format `TEE-BLACK-OTTER-L`; prices integer cents per garment; unit tests cover SKU generation, lookup, and price maths; adding a fourth mark is a one-line change (test proves it) |
 | T3 | App shell: header, footer, demo banner | Robin | Cloud | S | T1 | Header with wordmark, nav, cart badge; footer; demo banner on every page; responsive at 360px; full keyboard navigation |
@@ -267,5 +267,5 @@ Queued questions rather than guesses, one per topic:
 | 5 | On approval: PR 1, then PRs 2–4 in parallel | Gina / Rush / Robin | The build |
 
 ### Current state
-- Brand assets pulled from the Drive press kit: Cognition and Devin wordmarks and avatars (SVG + PNG, black and white), four sticker artworks (PDF), two Devin interface screenshots. Monochrome kit, **no product photography** — the reason M6/T4 exists. The otter mascot is not in the kit — supplied separately by Robin and committed at `assets/brand/mark-otter.png`.
+- Brand assets pulled from the Drive press kit: Cognition and Devin wordmarks and avatars (SVG + PNG, black and white), four sticker artworks (PDF), two Devin interface screenshots. Monochrome kit, **no product photography** — the reason M6/T4 exists. The otter mascot is not in the kit — supplied separately by Robin and committed at `public/brand/mark-otter.png`.
 - No implementation work has been done. An exploratory Next.js scaffold exists on the Devin VM only; it is reference material, and PR 1 starts clean in this repo.
