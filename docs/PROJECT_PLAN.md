@@ -1,4 +1,4 @@
-# Cognition Merch Designer — Project Plan (v5.2)
+# Cognition Merch Designer — Project Plan (v5.3)
 
 Scope re-set with Rush on 2026-08-24: this is **not a store**. It is a **design tool** — a user picks a blank garment, drags Cognition artwork onto it, arranges it, saves the design, and downloads an image. No browsing a catalog, no cart, no checkout, no prices.
 
@@ -31,8 +31,8 @@ Team: **Rush** product lead · **Gina** technical lead · **Robin** process lead
 3. Direct manipulation works: drag to move, handles to resize proportionally and to rotate, layer order controls, delete. Every gesture also has a keyboard equivalent.
 4. Artwork cannot be placed outside the printable area — the design stays physically plausible.
 5. Saved designs survive a reload and a browser restart; the gallery lists them with a thumbnail, name, and date, and a design can be reopened, renamed, duplicated, and deleted.
-6. Downloaded PNG matches what is on screen — same garment, colour, artwork, placement, scale, and rotation — **at 2000×2000 px**, with a flat opaque background, and it renders correctly when opened outside the browser. It is a **mockup of the garment, not a print file** (see §3.1).
-7. Responsive from 360px to desktop: the editor is usable with touch on a phone, not just a mouse.
+6. Downloaded PNG matches what is on screen — same garment, colour, artwork, placement, scale, and rotation — **at 2000×2000 px**, with a flat opaque background, and it renders correctly when opened outside the browser. **"Matches" means visually equivalent, judged by eye, not pixel-identical** (Gina, 2026-08-24): the automated bar is that the export is non-blank and differs between two different designs. Pixel-diff snapshots are deliberately rejected — they would fail on any antialiasing or font change and teach the team to ignore a red build. It is a **mockup of the garment, not a print file** (see §3.1).
+7. Usable on a laptop at any reasonable window size, down to a narrow half-screen window (~1024px). **Phone and tablet support is out of scope** (Gina, 2026-08-24) — this is a laptop web app and the demo is on a laptop.
 8. Keyboard-only users can complete the golden path; no axe-core critical violations on the editor or the gallery.
 9. `npm run lint`, `tsc --noEmit`, and `npm run build` pass clean in CI on every PR.
 10. Playwright e2e covering the golden path (including a real download assertion) passes in CI.
@@ -71,11 +71,15 @@ Two consequences the team should agree on explicitly:
 
 **Garments and printable areas**
 
-| Garment | Colours | Printable area | Notes |
+The **printable area** is a rectangle per garment, expressed as fractions of the rendered garment box. Every layer's `x`, `y`, and `scale` is relative to *that rectangle*, not to the image — which is why a design survives being switched from a tee to a cap without recomputing anything. It does three jobs: it bounds clamping (DoD 4), it defines where a click-to-place mark lands, and it makes `scale = 1.0` mean "fills the print area" rather than an arbitrary pixel cap.
+
+| Garment | Rect (fractions of garment box) | Confidence | Notes |
 |---|---|---|---|
-| T-shirt | Black, White | Front chest | Largest canvas; the default |
-| Hoodie | Black, White | Front chest (pocket-aware) | Artwork must clear the pocket seam |
-| Cap | Black, White | Front panel | Small area — forces scale limits to be real |
+| T-shirt | x 0.30–0.70, y 0.28–0.62 | Medium | Largest canvas; the default. Least certain at the top edge — too high and artwork sits on the collar |
+| Hoodie | x 0.30–0.70, y 0.26–0.52 | Low | Deliberately **shorter** than the tee because the pocket seam cuts across the belly. Where that seam sits on our silhouette is unapproved |
+| Cap | x 0.34–0.66, y 0.40–0.58 | Low | Much smaller, and the most consequential — a real cap panel is tiny, and a generous rectangle produces designs that look fine on screen and absurd on a hat |
+
+**These numbers need approval by eye, not in code review — and they are not cheaply changeable later.** Because coordinates are normalised, moving a rectangle moves every existing design's artwork with it; there is no migration path, only "all saved designs now look different." The resolution is built into T3: the contact sheet renders each garment×colour blank **with its print rectangle outlined and a mark at maximum scale**, and Gina approves the numbers from that one image before T5 builds on them.
 
 **Marks:** Cognition logo, Devin logo, otter mascot — the same three as v4, now placeable rather than preset.
 
@@ -91,9 +95,9 @@ Two consequences the team should agree on explicitly:
 | M7 | Layer controls | Select, reorder, duplicate, delete; a visible list for keyboard and screen-reader users |
 | M8 | Save & persistence | Named designs persisted locally behind a storage seam; autosave of the in-progress design |
 | M9 | My designs gallery | Thumbnails, open, rename, duplicate, delete, empty state |
-| M10 | PNG download | Fixed-size export matching the editor exactly; sensible filename |
-| M11 | Responsive & a11y pass | Touch drag on mobile; keyboard path; focus management; labels |
-| M12 | CI, tests, local-run docs | Lint/typecheck/build/unit/e2e in CI; README that gets a stranger running in two commands |
+| M10 | PNG download | 2000×2000 export, visually equivalent to the editor; sensible filename |
+| M11 | Layout & a11y pass | Laptop widths down to ~1024px; keyboard path; focus management; labels. No phone or touch work |
+| M12 | CI, tests, local-run docs | Lint/typecheck/build/unit/e2e in CI; README that gets each of the three leads running in two commands from a fresh clone |
 
 ### Optional / stretch (O) — only after every M lands
 | ID | Feature |
@@ -227,7 +231,8 @@ Two properties this buys, and they are the reason for the shape:
 | Editor/thumbnail/export drift apart | The download does not match the screen — DoD 6 fails, and it is the feature users will judge | One `renderDesign()` used by all three, enforced by a test that rasterises a fixture design and compares it to the editor's serialised SVG |
 | Export renders blank because marks are external `href`s | Silent, ships easily, embarrassing in the demo | Data-URI inlining is an acceptance criterion of T9, with a test that asserts non-blank pixels in the exported bitmap |
 | Drag interaction is the hardest thing here and is on the critical path | Slips everything downstream | T5/T6 is the only L-sized ticket before the gallery, it is front-loaded as an early parallel PR, and the fallback is click-to-place plus numeric position and scale inputs, which satisfies every DoD item except the feel |
-| Touch drag conflicts with page scroll on mobile | Editor unusable on a phone, and DoD 7 fails | Pointer Events with `touch-action: none` on the canvas only; verified on Desktop at 360px in T11, not assumed |
+| ~~Touch drag conflicts with page scroll on mobile~~ | — | **Removed** — phone support is out of scope (Gina, 2026-08-24). Pointer Events are still used rather than mouse events: same code, and it covers trackpad and stylus for free |
+| Printable-area rectangles are wrong and only visible by eye | Every design looks subtly off, and normalised coordinates mean there is no migration — changing the rectangle moves all existing artwork | T3 attaches a contact sheet with each print rectangle outlined and a mark at max scale; Gina approves the numbers from that image before T5 builds on them |
 | Otter is a 400×400 raster with a white matte | White box on black garments; soft edges when scaled up | Matte keyed out once in T1 and committed as an alpha PNG; export size capped at what 400px supports; a vector or ≥2000px otter is a prerequisite for any real print run (out of scope) |
 | Designs are per-browser and invisible to everyone else | A user "saves" a design, clears site data, and loses it | Accepted consequence of local-only; the gallery says so in plain words, and PNG download is the export path that outlives the browser |
 | Users produce off-brand or offensive layouts | Brand risk the storefront version did not have | Fixed asset set (no uploads, no text) is the primary control; brand review before anything is shared externally |
@@ -261,7 +266,7 @@ Every ticket that produces a PR: T1–T12 and any optional work. Sessions are lo
 ### Desktop (Devin's VM GUI and browser) — verification and demo artifacts
 This project leans on Desktop far harder than v4 did, because the product *is* an interaction. Automated tests cannot tell us whether dragging feels right.
 - **Drag, resize, and rotate verified by hand** on every editor PR (PRs 5–7) — this is the primary verification method for T5/T6, not a supplement to it.
-- **Touch behaviour at 360px**: does dragging the artwork scroll the page instead of moving the mark? Only a real browser answers this.
+- **Drag feel on a trackpad**: does the artwork track the pointer without lag or drift? Only a real browser answers this.
 - **Export fidelity check**: download the PNG, open it outside the browser, compare it side by side with the editor. DoD 6 is verified visually here.
 - **The final demonstration recording** for Rush — the artifact that goes in the readout.
 - Already done here: pulling the brand assets out of the Google Drive press kit.
@@ -285,16 +290,16 @@ Estimates are in Devin sessions (S ≈ ¼, M ≈ ½, L ≈ 1). "Owner" is the hu
 | T0 | Repo access & branch protection | Gina | — | — | — | Branch protection on `main` requiring one review and green CI. **Done** — no hosting to arrange |
 | T1 | Scaffold app, CI, brand assets | Gina | Cloud | M | T0 | Vite + React + React Router + TS + Tailwind builds and serves; lint/typecheck/build/test scripts green in GitHub Actions; press-kit assets under `public/brand`; **otter's white matte keyed out and committed as an alpha PNG**; all three marks also exported as base64 constants for the export path; README |
 | T2 | Design data model | Gina | Cloud | M | T1 | `Design`/`Layer` types as in §3.0; per-garment printable-area geometry; clamping and normalisation helpers; unit tests cover clamping at the bounds, rotation wrap-around, and round-tripping a design through JSON |
-| T3 | Garment renderer | Gina | Cloud + Desktop | L | T1, T2 | `renderDesign(design, size) → Scene` plus `toReactSvg` / `toSvgString` adapters; all 6 garment×colour blanks render with layers composited at correct position, scale, rotation and z-order; a test asserts the two adapters produce the same geometry from one scene; identical output at 320/800/2000px; alt text describes the design; no external image requests; contact-sheet screenshot attached to the PR |
-| T4 | App shell, editor & gallery routes | Robin | Cloud | S | T1 | Header, footer, `/` (editor) and `/designs` (gallery) routes wired through React Router with loading states; responsive at 360px; full keyboard navigation; pages may be stubs |
-| T5 | Artwork tray & drag-to-place | Rush | Cloud + Desktop | L | T3, T4 | Three marks in a tray; drag onto the garment places a layer where dropped; click/Enter places at centre; works with mouse, touch, and keyboard; page does not scroll during a touch drag; placement clamped to the printable area |
+| T3 | Garment renderer | Gina | Cloud + Desktop | L | T1, T2 | `renderDesign(design, size) → Scene` plus `toReactSvg` / `toSvgString` adapters; all 6 garment×colour blanks render with layers composited at correct position, scale, rotation and z-order; a test asserts the two adapters produce the same geometry from one scene; identical output at 320/800/2000px; alt text describes the design; no external image requests; contact sheet attached to the PR **with each printable rectangle outlined and a mark at max scale, for Gina to approve the geometry by eye — this is the approval gate for the rectangles in §3.0** |
+| T4 | App shell, editor & gallery routes | Robin | Cloud | S | T1 | Header, footer, `/` (editor) and `/designs` (gallery) routes wired through React Router with loading states; layout holds down to a ~1024px window; full keyboard navigation; pages may be stubs |
+| T5 | Artwork tray & drag-to-place | Rush | Cloud + Desktop | L | T3, T4 | Three marks in a tray; drag onto the garment places a layer where dropped; click/Enter places at centre; works with pointer and keyboard; placement clamped to the printable area |
 | T6 | Transform: move, scale, rotate | Rush | Cloud + Desktop | L | T5 | Selected layer shows handles; drag to move, corner handles scale proportionally, rotate handle rotates; state changes go through the `useDesign` reducer, never direct mutation; **clamping uses the rotated bounding box**, so a rotated mark cannot poke outside the printable area; min/max scale enforced; arrow keys nudge, `+`/`-` scale, `[`/`]` rotate; transform maths unit-tested with no DOM |
 | T7 | Garment & colour picker | Rush | Cloud | S | T5 | Switching garment or colour keeps existing layers, re-clamping them into the new printable area; state reflected in the URL; caps visibly constrain artwork size |
 | T8 | Save, autosave & persistence | Robin | Cloud | M | T2, T6 | `DesignStore` interface with a `localStorage` implementation; explicit save with a name; in-progress design autosaved and restored after reload and browser restart; store unit-tested against an in-memory implementation of the same interface; a second tab's changes refresh rather than clobber silently (`storage` event); versioned payload so a schema change does not crash on old saved designs |
 | T9 | PNG download | Gina | Cloud + Desktop | M | T3, T8 | Download produces a PNG matching the editor exactly at 2000×2000 px; marks inlined as data URIs; test asserts the exported bitmap is not blank and differs between two different designs; filename derived from the design name; downloaded file opens correctly outside the browser |
 | T10 | My designs gallery | Robin | Cloud | M | T8, T3 | Client-rendered with a skeleton while the store loads — no hydration mismatch; thumbnails from the same renderer; open, rename, duplicate, delete with confirmation; empty state links to the editor; copy states designs are stored in this browser only; sorted by last updated |
-| T11 | Responsive, a11y & touch pass | Rush | Cloud + Desktop | M | T7, T10 | Editor usable with touch at 360px; layer list gives keyboard and screen-reader users everything the canvas gives pointer users; focus visible and managed on select/delete; axe-core zero critical violations on editor and gallery |
-| T12 | E2E, CI & local-run docs | Robin | Cloud | M | T11, T9 | Playwright golden path green in CI including a real download assertion; unit tests in CI; **README verified by running it from a clean clone on a machine that has never built the project** — two commands, no env vars, no accounts; README also explains the design model and the storage seam |
+| T11 | Layout & a11y pass | Rush | Cloud + Desktop | S | T7, T10 | Editor holds together from a ~1024px window to full screen; layer list gives keyboard and screen-reader users everything the canvas gives pointer users; focus visible and managed on select/delete; axe-core zero critical violations on editor and gallery. **Size reduced from M — phone/touch scope removed** |
+| T12 | E2E, CI & local-run docs | Robin | Cloud | M | T11, T9 | Playwright golden path green in CI including a real download assertion; unit tests in CI; **README verified by each of Rush, Gina, and Robin cloning fresh and running two commands once, before demo day** (Gina, 2026-08-24: the bar is our three machines, not an arbitrary reviewer's) — no env vars, no accounts; README also explains the design model and the storage seam |
 | T13 | Demonstration script & recording | Rush | Desktop | S | T12 | 3–5 minute recorded walkthrough — blank tee to downloaded PNG — run against a local dev server, plus a written script for the live readout. With no hosted URL, **this recording is the shareable artifact** |
 | T14 (opt) | Share-by-URL | Gina | Cloud | M | T12 | Design encoded in the link; opening a shared link loads it into the editor; still no backend |
 | T15 (opt) | Undo/redo | Rush | Cloud | M | T12 | Undo/redo across place, transform, reorder, delete; `Cmd/Ctrl+Z` and `Shift+Cmd/Ctrl+Z` |
@@ -319,7 +324,7 @@ Every PR is independently reviewable, leaves `main` runnable, and has one owner 
 | 8 | `feat: save and autosave` | T8 | Robin | Gina | Store seam and save UX; gallery still a stub |
 | 9 | `feat: png download` | T9 | Gina | Rush | Export path only; no share links |
 | 10 | `feat: my designs gallery` | T10 | Robin | Rush | Gallery CRUD; no editing inside the gallery |
-| 11 | `fix: responsive, touch, and a11y pass` | T11 | Rush | Gina | Behaviour-preserving; no new features |
+| 11 | `fix: layout and a11y pass` | T11 | Rush | Gina | Behaviour-preserving; no new features |
 | 12 | `test: e2e and local-run docs` | T12 | Robin | Gina | Tests and README only, no behaviour change |
 | 13+ | optional scope | T14, T15 | as assigned | as assigned | One PR per optional item |
 
