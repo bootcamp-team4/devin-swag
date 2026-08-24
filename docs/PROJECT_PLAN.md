@@ -1,9 +1,11 @@
-# Cognition Merch Store — Project Plan (v3)
+# Cognition Merch Store — Project Plan (v4)
 
 Scope locked with Robin on 2026-08-24:
 public storefront · **no real payments** · **no inventory/fulfillment** · demo application · built from scratch · brand assets from the Cognition press kit · repo `bootcamp-team4/devin-swag`.
 
 Team: **Rush** product lead · **Gina** technical lead · **Robin** process lead. Planning only — no implementation has started.
+
+**Product model:** three base garments — **T-shirt, hoodie, cap** — each in **black or white**, each combinable with one of three **brand marks: Cognition logo, Devin logo, Otter mascot**. The mark is the product's point of interest, so the artwork picker is core scope, not a stretch goal.
 
 ---
 
@@ -23,29 +25,49 @@ Team: **Rush** product lead · **Gina** technical lead · **Robin** process lead
 
 **Definition of done.** All must be true:
 
-1. A visitor can complete the golden path unaided: home → catalog → product detail → pick variant → add to cart → cart → checkout form → confirmation screen with an order number.
-2. Catalog contains ≥10 products across ≥4 categories, each with variants (size/colour where applicable), price, description, and generated mockup imagery using real press-kit assets.
-3. Cart persists across page reloads and browser restarts.
-4. Every "purchase" surface is unmistakably a demo: a persistent banner/label states no payment is taken and no order is fulfilled; the checkout form accepts no card data.
-5. Responsive from 360px to desktop; keyboard-navigable golden path; no axe-core critical violations on catalog, PDP, cart, checkout.
-6. `npm run lint`, `tsc --noEmit`, and `npm run build` pass clean in CI on every PR.
-7. Playwright e2e covering the golden path passes in CI.
-8. Deployed to a shareable preview URL, and the repo README explains how to run it and how to swap the mock checkout for a real one.
-9. Lighthouse ≥90 performance and ≥95 accessibility on the catalog page.
+1. A visitor can complete the golden path unaided: home → catalog → product detail → **pick mark, colour, and size** → add to cart → cart → checkout form → confirmation screen with an order number.
+2. All **18 base combinations** (3 garments × 2 colours × 3 marks) are browsable and purchasable, each rendering a distinct mockup built from the real brand assets, with sizes on the garments.
+3. Changing the mark or the colour on a product page updates the mockup, the URL, and the cart line — the chosen mark is carried through cart, checkout, and confirmation.
+4. Cart persists across page reloads and browser restarts; two cart lines differing only by mark are distinct lines.
+5. Every "purchase" surface is unmistakably a demo: a persistent banner/label states no payment is taken and no order is fulfilled; the checkout form accepts no card data.
+6. Responsive from 360px to desktop; keyboard-navigable golden path including the mark picker; no axe-core critical violations on catalog, PDP, cart, checkout.
+7. `npm run lint`, `tsc --noEmit`, and `npm run build` pass clean in CI on every PR.
+8. Playwright e2e covering the golden path passes in CI.
+9. Deployed to a shareable preview URL, and the repo README explains how to run it and how to swap the mock checkout for a real one.
+10. Lighthouse ≥90 performance and ≥95 accessibility on the catalog page.
 
 **Anti-goals (explicitly not done):** payment processing, real inventory, user accounts, admin CMS, email, analytics vendor, print vendor integration.
 
 ## 3. Scope
 
+### 3.0 The product matrix
+
+The catalog is one small, deliberate grid rather than a long product list. Everything else in the plan follows from it.
+
+| Base garment | Colours | Sizes | Marks | SKUs |
+|---|---|---|---|---|
+| T-shirt | Black, White | XS–2XL (6) | Cognition, Devin, Otter | 36 |
+| Hoodie | Black, White | XS–2XL (6) | Cognition, Devin, Otter | 36 |
+| Cap | Black, White | One size | Cognition, Devin, Otter | 6 |
+
+**78 SKUs from 3 garments × 2 colours × 3 marks × sizes** — generated from the matrix in code, never hand-listed. Pricing is per garment, not per mark: tee $32, hoodie $78, cap $34.
+
+Two consequences the team should agree on explicitly:
+
+1. **The mark is a product axis, not a category.** `/products/tshirt?mark=otter&color=black` is the canonical URL; the catalog grid shows garment × mark tiles so all nine visual combinations are visible at a glance, with colour switched on the product page.
+2. **Contrast is a real constraint.** A black mark on a black tee is invisible, so each mark ships in both black and white and the mockup picks the variant that contrasts with the garment. This is a rendering rule, not a data field.
+
+**Asset status:** Cognition logo and Devin logo are in the press kit (SVG, black and white). **The otter mascot is not** — see the dependency table in §4.
+
 ### Must-have (M)
 | ID | Feature | Notes |
 |---|---|---|
 | M1 | Design system & app shell | Monochrome brand tokens, type scale, header with cart badge, footer, demo banner |
-| M2 | Product catalog data model | Typed static data module — products, variants, categories, price in integer cents |
-| M3 | Home page | Hero with wordmark, featured products, category entry points |
-| M4 | Catalog page | Grid, category filter, text search, sort by price, empty state — filter state in the URL |
-| M5 | Product detail page | Gallery, variant picker (size/colour), price, description, size chart, add-to-cart, out-of-stock states |
-| M6 | Product mockup imagery | Generated SVG mockups per product type, composited with press-kit marks |
+| M2 | Product matrix data model | Typed module generating the garment × colour × mark × size matrix; prices in integer cents; SKU derived from the axes |
+| M3 | Home page | Hero, the three garments, the three marks as entry points |
+| M4 | Catalog page | Grid of garment × mark tiles, filter by garment and by mark, colour toggle, empty state — filter state in the URL |
+| M5 | Product detail page | Mockup preview, **mark picker**, colour picker, size picker, price, description, size chart, add-to-cart |
+| M6 | Mockup rendering engine | Garment silhouettes (tee, hoodie, cap) in black and white with a mark composited at the correct placement and scale, contrast-aware; one component, three garment shapes, three marks |
 | M7 | Cart | Persistent (localStorage), qty edit, remove, subtotal/shipping/tax estimate, empty state |
 | M8 | Mock checkout | Shipping-details form with validation, order summary, no payment fields, "Place demo order" |
 | M9 | Confirmation | Generated order number, order recap, clear "this is a demo" copy, back-to-catalog |
@@ -55,7 +77,8 @@ Team: **Rush** product lead · **Gina** technical lead · **Robin** process lead
 ### Optional / stretch (O) — only after every M lands
 | ID | Feature |
 |---|---|
-| O1 | Product configurator: choose mark (Cognition vs. Devin) and placement, live mockup preview |
+| O1 | Placement options (left chest vs. centre chest vs. sleeve) and a large back print |
+| O1b | Additional garments (long sleeve, beanie, tote) reusing the same matrix |
 | O2 | Discount-code field that visibly applies a fake code (`DEVIN10`) |
 | O3 | Wishlist / "save for later" |
 | O4 | Bundles ("new-hire kit") |
@@ -72,7 +95,12 @@ Accounts/auth, admin UI, database, real payments, tax/shipping engines, print-on
 **Stack (chosen, with reasons):**
 - **Next.js 16 (App Router) + TypeScript + Tailwind v4** — server components make the catalog fast and SEO-clean; one deployable; the App Router gives us the route seams to add real APIs later.
 - **No database, no backend.** Catalog is a typed static module (`src/lib/products.ts`); cart is React context + `localStorage`; the mock order is generated client-side. This is the single biggest scope reducer and is fully reversible.
-- **Imagery generated in-repo.** The press kit contains wordmarks, avatars, and sticker art — no product photography — so each product renders a deterministic SVG mockup (garment/object silhouette + press-kit mark) rather than shipping stock photos.
+- **Imagery generated in-repo.** No product photography exists, so mockups are composed at render time:
+  ```tsx
+  <Mockup garment="hoodie" color="black" mark="otter" />
+  // → <svg>{garmentPath[garment][color]}<image href={markAsset(mark, contrastOn(color))} …/></svg>
+  ```
+  Three garment silhouettes × two colourways × three marks, composed rather than enumerated: **9 assets produce 18 visuals**, and adding a fourth garment or a fourth mark is one new asset, not a new image set. Swapping in real photography later replaces this one component.
 - **Testing:** Playwright for the golden path, Vitest for cart/price maths, axe-core in the a11y test.
 - **CI:** GitHub Actions — lint, typecheck, build, unit, e2e on every PR.
 - **Hosting:** Vercel preview per PR + a production preview URL. *Requires the user's/org's Vercel account — I will not deploy to a personal account.*
@@ -82,21 +110,25 @@ Accounts/auth, admin UI, database, real payments, tax/shipping engines, print-on
 **Dependencies (technical):** `next`, `react`, `tailwindcss`, `@playwright/test`, `vitest`, `@axe-core/playwright`. Nothing else — no UI kit, no state library. Every dependency pinned to a version published ≥7 days before adoption.
 
 **Dependencies (external, blocking):**
-| Dependency | Owner | Needed by |
-|---|---|---|
-| New empty repo + write access | Gina | T1 (day one) |
-| Product list: which items, prices, copy | Robin/Marketing | T2 — placeholders used until then |
-| Vercel account/team for deploys | Robin | T11 |
-| Brand approval on generated mockups | Marketing | before external sharing |
+| Dependency | Owner | Needed by | Status |
+|---|---|---|---|
+| Repo + write access | Gina | T1 | Done — `bootcamp-team4/devin-swag` |
+| **Otter mascot artwork (SVG, black + white)** | Rush | T4 — blocks a third of the catalog | **Missing from the press kit — open blocker** |
+| Confirmed prices for tee / hoodie / cap | Rush | T2 | Placeholders in use |
+| Vercel account/team for deploys | Robin | T11 | Open |
+| Brand approval on generated mockups | Rush → Marketing | before external sharing | Open |
 
 **Major risks:**
 | Risk | Impact | Mitigation |
 |---|---|---|
 | No product photography exists | Store looks unfinished; blocks external sharing | Generated SVG mockups (M6); treat photography as a later swap behind one component |
+| **Otter mascot asset not available** | A third of the catalog cannot render; the differentiating product is the one missing | Ship Cognition + Devin first (T4 is structured so marks are additive); if the otter has not arrived by T7, cut it to optional scope and demo six combinations, not nine |
+| Mark invisible against the garment (black on black) | Mockups look broken | Contrast rule in the mockup engine, both colourways of every mark required at asset intake |
+| Only 3 garments makes the catalog look thin | Demo feels like a stub | Lean into it — present it as a curated capsule drop; the grid shows 9 garment × mark tiles, which reads as a full catalogue page |
+| Mockup engine (T4) is the one genuinely hard piece and it is now on the critical path | Slips the whole demo | It is the only ticket sized L before T7, it is parallelized as PR 4, and the fallback is a flat wordmark-on-colour tile that satisfies every DoD item except visual polish |
 | Demo mistaken for a real store — someone tries to buy | Trust/support problem | M4 of DoD: persistent demo banner, no card fields, confirmation copy states nothing was charged |
 | Brand misuse of press-kit assets | Marketing rework | Use assets unmodified, monochrome palette only; brand review before external sharing |
 | Fake prices/product names leak into a public deck as fact | Misleading stakeholders | Label placeholder copy in the UI until Marketing supplies the real list |
-| Repo not provided in time | Idle work | Build on a local branch; push as soon as the repo exists (already the current fallback) |
 | Scope creep toward real commerce | Blows the demo timebox | O8 is explicitly optional and gated behind the commerce seam |
 
 ## 5. Team, Roles & Ownership
@@ -119,7 +151,7 @@ The split is by the *nature of the work*, not by preference. Rule of thumb: **Cl
 
 ### Cloud (Devin sessions in the webapp) — the default for implementation
 Every ticket that produces a PR runs here: T1–T11 and any optional work. Best fit because sessions are long-running, produce reviewable PRs, survive the owner closing their laptop, and can be parallelized as child sessions.
-- **Parallelized here:** PR 2 (data model), PR 3 (app shell), PR 4 (mockup artwork) touch disjoint files and run as three concurrent sessions owned by three different people — the single biggest schedule compression available to us.
+- **Parallelized here:** PR 2 (matrix data model), PR 3 (app shell), PR 4 (mockup engine) touch disjoint files and run as three concurrent sessions owned by three different people — the single biggest schedule compression available to us, and it front-loads T4, the riskiest ticket.
 - **Also here:** CI failure triage, review-comment fixes, and the optional-scope PRs.
 - **Owner-in-Cloud pattern:** the PR owner opens their own session, prompts Devin with the ticket's acceptance criteria verbatim, and stays responsible for the result.
 
@@ -132,7 +164,8 @@ Used where the deliverable is visual evidence, not code:
 
 ### CLI (Devin CLI on a lead's own machine) — human-in-the-loop editing
 Used where a human wants a sub-minute loop and no PR overhead:
-- Rush editing product copy, prices, and category names in `src/lib/products.ts` while looking at `npm run dev` (T12) — content iteration is far faster locally than through a session.
+- Rush editing garment copy, prices, and mark definitions in `src/lib/products.ts` while looking at `npm run dev` (T12) — content iteration is far faster locally than through a session.
+- Rush iterating on mark placement and scale in the mockup engine against the contact-sheet route: this is a visual judgement call with a dozen small numeric tweaks, which is exactly the wrong shape for a Cloud round trip and the right shape for the CLI.
 - Gina spiking an architecture question (does the commerce seam hold up against a real Stripe call?) before committing the team to it in a Cloud PR.
 - Anyone reproducing a review comment locally before asking for a fix.
 - Output still lands as a normal PR; the CLI is the authoring environment, not a bypass of review.
@@ -147,20 +180,21 @@ Estimates are in Devin sessions (S ≈ ¼, M ≈ ½, L ≈ 1). "Owner" is the hu
 | ID | Title | Owner | Surface | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|---|
 | T0 | Repo + Vercel access | Gina | — | — | — | Repo exists with all leads and Devin as collaborators; branch protection on `main` requiring one review and green CI; Vercel project connected or an explicit "no deploy" decision recorded |
+| T0b | **Source the otter mascot artwork** | Rush | — | — | — | Otter supplied as SVG in black and white, cleared for merch use, dropped into `public/brand`; if unavailable by the start of T7, the otter is formally cut to optional scope |
 | T1 | Scaffold app, CI, brand tokens | Gina | Cloud | M | T0 | Next.js 16 + TS + Tailwind builds; lint/typecheck/build green in GitHub Actions; press-kit assets committed under `public/brand`; monochrome tokens defined; README with run instructions |
-| T2 | Catalog data model + seed products | Gina | Cloud | M | T1 | `src/lib/products.ts` exports typed `Product`/`Variant`; ≥10 products, ≥4 categories; prices integer cents; unit tests for lookup/price helpers pass; placeholder copy visibly marked as placeholder |
+| T2 | Product matrix data model | Gina | Cloud | M | T1 | `src/lib/products.ts` generates the garment × colour × mark × size matrix from three garment definitions and three mark definitions — no hand-listed SKUs; SKU format `TEE-BLACK-OTTER-L`; prices integer cents per garment; unit tests cover SKU generation, lookup, and price maths; adding a fourth mark is a one-line change (test proves it) |
 | T3 | App shell: header, footer, demo banner | Robin | Cloud | S | T1 | Header with wordmark, nav, cart badge; footer; demo banner on every page; responsive at 360px; full keyboard navigation |
-| T4 | Product mockup imagery | Rush | Cloud + Desktop | M | T1 | Every product renders a distinct mockup at grid and detail sizes; press-kit marks used unmodified; no external image requests; alt text everywhere; screenshots attached to the PR |
-| T5 | Home page | Rush | Cloud | S | T2, T3, T4 | Hero, ≥4 featured products linking to PDPs, category tiles linking to filtered catalog; Lighthouse ≥90 perf / ≥95 a11y |
-| T6 | Catalog: grid, filter, search, sort | Rush | Cloud | M | T2, T3, T4 | Category filter, text search, price sort; state in the URL and survives refresh and sharing; empty state with reset; result count announced to screen readers |
-| T7 | Product detail page | Rush | Cloud | L | T6 | Variant picker updates price and availability; out-of-stock variants disabled with explanation; size chart for apparel; add-to-cart feedback; per-product metadata and title |
-| T8 | Cart | Robin | Cloud | M | T7 | Add / change qty / remove; persists across reload and browser restart; subtotal, shipping and tax estimates, total all unit-tested; empty state links to catalog |
+| T4 | Mockup rendering engine | Rush | Cloud + Desktop | L | T1, T0b | `<Mockup garment color mark />` renders all 18 combinations distinctly at grid and detail sizes; garment silhouettes for tee, hoodie, cap; marks used unmodified and auto-contrasted against the garment colour; no external image requests; alt text describes garment, colour, and mark; contact-sheet screenshot of all 18 attached to the PR |
+| T5 | Home page | Rush | Cloud | S | T2, T3, T4 | Hero, the three garments, the three marks as entry points into a filtered catalog; Lighthouse ≥90 perf / ≥95 a11y |
+| T6 | Catalog: grid + filters | Rush | Cloud | M | T2, T3, T4 | Grid of the 9 garment × mark tiles; filter by garment and by mark; colour toggle switches every tile; state in the URL and survives refresh and sharing; empty state with reset; result count announced to screen readers |
+| T7 | Product detail page + mark picker | Rush | Cloud | L | T6 | Mark, colour, and size pickers each update the mockup, the price where relevant, and the URL without a full reload; deep link `?mark=otter&color=black` restores exact state; size chart on garments; caps have no size picker; add-to-cart feedback names the chosen combination |
+| T8 | Cart | Robin | Cloud | M | T7 | Add / change qty / remove; lines keyed by full SKU so same garment with different marks are distinct lines showing their own mockup; persists across reload and browser restart; subtotal, shipping and tax estimates, total all unit-tested; empty state links to catalog |
 | T9 | Mock checkout + commerce seam | Gina | Cloud | L | T8 | `createOrder()` seam in `src/lib/commerce.ts`; shipping form with inline validation; **no card input anywhere**; submit produces an order number, clears the cart, routes to confirmation; copy states no payment was taken |
 | T10 | Confirmation page | Robin | Cloud | S | T9 | Order number, items, totals, shipping address; refresh-safe; "demo — nothing was charged and nothing will ship" copy; back-to-catalog link |
 | T11 | E2E, a11y, deploy | Robin | Cloud + Desktop | L | T10 | Playwright golden path green in CI; axe-core zero critical violations on home/catalog/PDP/cart/checkout; preview URL live or local-run documented; README documents the Stripe swap |
-| T12 | Real product copy & prices | Rush | CLI | S | T2 | Placeholders replaced with the approved list; placeholder labels removed |
+| T12 | Real copy & prices | Rush | CLI | S | T2 | Confirmed tee/hoodie/cap prices and product copy in place; placeholder labels removed |
 | T13 | Demonstration script & recording | Rush | Desktop | S | T11 | 3–5 minute recorded walkthrough of the golden path plus a written script for the live readout |
-| T14 (opt) | Product configurator | Rush | Cloud | L | T11 | Mark and placement selectable on ≥3 apparel products; live mockup preview; selection carried into cart line and confirmation |
+| T14 (opt) | Placement options & extra garments | Rush | Cloud | L | T11 | Placement (left chest / centre / back) selectable on tee and hoodie with live preview; or a fourth garment added purely through the matrix |
 | T15 (opt) | Stripe test-mode checkout | Gina | Cloud + CLI | L | T11 | Behind `NEXT_PUBLIC_ENABLE_PAYMENTS`; test-card checkout completes; webhook drives order state; demo mode stays the default |
 
 **Must-have total (T1–T11): ~4 sessions of Devin execution**, compressible to ~2.5 elapsed by running PRs 2–4 in parallel. T12–T13 are small and human-gated; T14–T15 add ~2.
@@ -174,11 +208,11 @@ Every PR is independently reviewable, leaves `main` deployable, and has one owne
 | PR | Title | Tickets | Owner | Reviewer | Scope boundary (what it deliberately excludes) |
 |---|---|---|---|---|---|
 | 1 | `chore: scaffold app and CI` | T1 | Gina | Robin | No product code — config, tokens, assets, CI only |
-| 2 | `feat: catalog data model` | T2 | Gina | Rush | Data and unit tests only, zero UI |
+| 2 | `feat: product matrix data model` | T2 | Gina | Rush | Matrix generation and unit tests only, zero UI |
 | 3 | `feat: app shell and demo banner` | T3 | Robin | Gina | Chrome only; pages stay stubs |
-| 4 | `feat: product mockup artwork` | T4 | Rush | Gina | Artwork component only; not wired into pages yet |
+| 4 | `feat: mockup rendering engine` | T4 | Rush | Gina | Garment silhouettes + mark compositing on a dev-only contact-sheet route; not wired into product pages yet |
 | 5 | `feat: home and catalog pages` | T5, T6 | Rush | Robin | No PDP; cards link to a stub route |
-| 6 | `feat: product detail page` | T7 | Rush | Gina | Add-to-cart calls a no-op stub from PR 3 |
+| 6 | `feat: product detail page and mark picker` | T7 | Rush | Gina | Add-to-cart calls a no-op stub from PR 3 |
 | 7 | `feat: cart` | T8 | Robin | Rush | Real cart state and page; checkout still a stub |
 | 8 | `feat: mock checkout and confirmation` | T9, T10 | Gina | Rush | The commerce seam; no real payment path |
 | 9 | `test: e2e, a11y, and deploy config` | T11 | Robin | Gina | Tests and config only, no behaviour change |
@@ -207,6 +241,7 @@ The demonstration is the deliverable; anything that threatens it gets cut. Agree
 | Any PR exceeds ~400 lines or two sessions | Split it; PR 7 splits into cart state vs. cart page, PR 8 into checkout form vs. confirmation |
 | The must-have set is not on track with a third of the time left | Cut in this order: PR 9 e2e → PR 4 rich mockups (fall back to flat colour tiles) → PR 6 size chart and gallery |
 | The real product list has not arrived | Ship with clearly-labelled placeholder copy; do not block the demo |
+| Otter artwork not cleared in time | Cut to two marks (Cognition, Devin) — 12 combinations; the matrix makes re-adding it a one-line change later |
 | Vercel access does not materialise | Demo runs locally from the CLI; drop DoD item 8's hosted-URL requirement |
 | Mockup quality is not brand-acceptable | Fall back to wordmark-on-colour tiles; the mockup component is isolated for exactly this reason |
 | Anyone proposes real payments before T11 | Declined — it is optional scope T15 and lives behind the seam |
@@ -225,12 +260,13 @@ Queued questions rather than guesses, one per topic:
 
 | # | Action | Owner | Unblocks |
 |---|---|---|---|
-| 1 | Repo access for all leads + branch protection; confirm or decline Vercel | Gina | Everything |
-| 2 | Approve this plan's scope and DoD | Rush | T1 |
-| 3 | File T0–T15 with these acceptance criteria; stand up the board | Robin | Tracking |
-| 4 | Request the real product list from Marketing | Rush | T12 |
-| 5 | On approval: PR 1, then PRs 2–4 in parallel | Gina / Rush / Robin | The build |
+| 1 | Branch protection on `main`; confirm or decline Vercel | Gina | Merges, T11 |
+| 2 | **Source the otter mascot artwork** (SVG, black + white, cleared for merch) | Rush | T4 — a third of the catalog |
+| 3 | Approve this plan's scope, the 3×2×3 matrix, and the DoD | Rush | T1 |
+| 4 | File T0–T15 with these acceptance criteria; stand up the board | Robin | Tracking |
+| 5 | Confirm tee / hoodie / cap prices | Rush | T12 |
+| 6 | On approval: PR 1, then PRs 2–4 in parallel | Gina / Rush / Robin | The build |
 
 ### Current state
-- Brand assets pulled from the Drive press kit: Cognition and Devin wordmarks and avatars (SVG + PNG, black and white), four sticker artworks (PDF), two Devin interface screenshots. Monochrome kit, **no product photography** — the reason M6/T4 exists.
+- Brand assets pulled from the Drive press kit: Cognition and Devin wordmarks and avatars (SVG + PNG, black and white), four sticker artworks (PDF), two Devin interface screenshots. Monochrome kit, **no product photography** — the reason M6/T4 exists. Two of the three required marks are covered; **the otter mascot is not in the kit** (T0b).
 - No implementation work has been done. An exploratory Next.js scaffold exists on the Devin VM only; it is reference material, and PR 1 starts clean in this repo.
