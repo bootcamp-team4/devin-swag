@@ -5,7 +5,12 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import { layerBox, MARK_LABELS, type Layer } from "../../lib/design.ts";
+import {
+  layerBox,
+  MARK_LABELS,
+  printableRect,
+  type Layer,
+} from "../../lib/design.ts";
 import { renderDesign, toReactSvg, type SceneMark } from "../../lib/render.ts";
 import type { DesignAction, EditorState } from "../../state/designReducer.ts";
 import { pointToFraction } from "./canvasPoint.ts";
@@ -13,6 +18,14 @@ import { pointToFraction } from "./canvasPoint.ts";
 /** Arrow-key step, in printable-area fractions; Shift takes bigger strides. */
 const NUDGE = 0.02;
 const NUDGE_COARSE = 0.1;
+
+/** Keyboard transform steps: a scale fraction and an angle in degrees. */
+const SCALE_STEP = 0.05;
+const ROTATE_STEP = 15;
+
+/** Radius of a transform handle, and how far the rotate handle floats above. */
+const HANDLE_RADIUS = 7;
+const ROTATE_ARM = 28;
 
 type Props = {
   state: EditorState;
@@ -25,6 +38,7 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
   const { design, selectedLayerId } = state;
   // Where inside the artwork the drag started, so it does not jump to centre.
   const grab = useRef<{ x: number; y: number } | null>(null);
+  const transform = useRef<"scale" | "rotate" | null>(null);
 
   const scene = renderDesign(design, size);
 
@@ -84,6 +98,70 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
   const selected = design.layers.find((layer) => layer.id === selectedLayerId);
   const box = selected ? layerBox(selected, design.garment, size) : null;
 
+  /** Pointer position in canvas pixels, measured from the artwork's centre. */
+  function centreOffset(event: ReactPointerEvent<SVGCircleElement>) {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect || !box) return null;
+    return { dx: event.clientX - rect.left - box.cx, dy: event.clientY - rect.top - box.cy };
+  }
+
+  function startTransform(
+    event: ReactPointerEvent<SVGCircleElement>,
+    kind: "scale" | "rotate",
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    transform.current = kind;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function onTransform(event: ReactPointerEvent<SVGCircleElement>) {
+    if (!selected || !transform.current) return;
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    const offset = centreOffset(event);
+    if (!offset) return;
+
+    if (transform.current === "rotate") {
+      // The handle sits above the artwork, so straight up is 0°.
+      const degrees = (Math.atan2(offset.dy, offset.dx) * 180) / Math.PI + 90;
+      dispatch({ type: "rotateLayer", id: selected.id, rotation: degrees });
+      return;
+    }
+
+    // Undo the layer's rotation so the corner handle tracks the pointer, then
+    // read the half-width back out in printable-area fractions.
+    const radians = (selected.rotation * Math.PI) / 180;
+    const localX = offset.dx * Math.cos(-radians) - offset.dy * Math.sin(-radians);
+    const area = printableRect(design.garment, size);
+    dispatch({
+      type: "scaleLayer",
+      id: selected.id,
+      scale: (Math.abs(localX) * 2) / area.width,
+    });
+  }
+
+  function endTransform(event: ReactPointerEvent<SVGCircleElement>) {
+    transform.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  function handleProps(kind: "scale" | "rotate") {
+    return {
+      r: HANDLE_RADIUS,
+      fill: "#ffffff",
+      stroke: "#2563eb",
+      strokeWidth: 2,
+      style: { cursor: kind === "scale" ? "nwse-resize" : "grab", touchAction: "none" as const },
+      onPointerDown: (event: ReactPointerEvent<SVGCircleElement>) =>
+        startTransform(event, kind),
+      onPointerMove: onTransform,
+      onPointerUp: endTransform,
+      onPointerCancel: endTransform,
+    };
+  }
+
   return (
     <div
       ref={canvasRef}
@@ -101,6 +179,29 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
           dispatch({ type: "deleteLayer", id: selectedLayerId });
           return;
         }
+        if (selected) {
+          const scaleBy = { "+": SCALE_STEP, "=": SCALE_STEP, "-": -SCALE_STEP }[event.key];
+          if (scaleBy !== undefined) {
+            event.preventDefault();
+            dispatch({
+              type: "scaleLayer",
+              id: selected.id,
+              scale: selected.scale + scaleBy,
+            });
+            return;
+          }
+          const rotateBy = { "[": -ROTATE_STEP, "]": ROTATE_STEP }[event.key];
+          if (rotateBy !== undefined) {
+            event.preventDefault();
+            dispatch({
+              type: "rotateLayer",
+              id: selected.id,
+              rotation: selected.rotation + rotateBy,
+            });
+            return;
+          }
+        }
+
         const step = event.shiftKey ? NUDGE_COARSE : NUDGE;
         const deltas: Record<string, { dx: number; dy: number }> = {
           ArrowLeft: { dx: -step, dy: 0 },
@@ -121,20 +222,46 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
       }}
     >
       {toReactSvg(scene, { markProps, showPrintableArea: true, className: "block" })}
-      {box ? (
+      {box && selected ? (
         <svg
           aria-hidden="true"
           viewBox={`0 0 ${size} ${size}`}
           width={size}
           height={size}
-          className="pointer-events-none absolute inset-0"
+          className="absolute inset-0"
+          style={{ pointerEvents: "none" }}
         >
+          <g
+            transform={
+              selected.rotation ? `rotate(${selected.rotation} ${box.cx} ${box.cy})` : undefined
+            }
+            style={{ pointerEvents: "auto" }}
+          >
+            <line
+              x1={box.cx}
+              y1={box.cy - box.height / 2}
+              x2={box.cx}
+              y2={box.cy - box.height / 2 - ROTATE_ARM}
+              stroke="#2563eb"
+              strokeWidth={2}
+            />
+            <circle
+              cx={box.cx}
+              cy={box.cy - box.height / 2 - ROTATE_ARM}
+              {...handleProps("rotate")}
+            />
+            <circle
+              cx={box.cx + box.width / 2}
+              cy={box.cy + box.height / 2}
+              {...handleProps("scale")}
+            />
+          </g>
           <rect
             x={box.cx - box.width / 2}
             y={box.cy - box.height / 2}
             width={box.width}
             height={box.height}
-            transform={selected?.rotation ? `rotate(${selected.rotation} ${box.cx} ${box.cy})` : undefined}
+            transform={selected.rotation ? `rotate(${selected.rotation} ${box.cx} ${box.cy})` : undefined}
             fill="none"
             stroke="#2563eb"
             strokeWidth={2}

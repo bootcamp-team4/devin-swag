@@ -5,6 +5,8 @@ import {
   clampLayer,
   createDesign,
   createLayer,
+  maxScaleFor,
+  MIN_SCALE,
   newId,
   reclampDesign,
   type Colourway,
@@ -28,6 +30,10 @@ export type DesignAction =
   | { type: "moveLayer"; id: string; x: number; y: number }
   /** Relative move, in printable-area fractions — the keyboard path. */
   | { type: "nudgeLayer"; id: string; dx: number; dy: number }
+  /** Absolute scale, as a fraction of the printable width. */
+  | { type: "scaleLayer"; id: string; scale: number }
+  /** Absolute rotation in degrees; the reducer normalises it. */
+  | { type: "rotateLayer"; id: string; rotation: number }
   | { type: "selectLayer"; id: string | null }
   | { type: "deleteLayer"; id: string }
   | { type: "reorderLayer"; id: string; direction: "up" | "down" }
@@ -79,6 +85,20 @@ export function designReducer(state: EditorState, action: DesignAction): EditorS
         x: layer.x + action.dx,
         y: layer.y + action.dy,
       }));
+
+    case "scaleLayer":
+      return mapLayer(state, action.id, (layer) => ({
+        ...layer,
+        // clampLayer only enforces the global limits, so hold the artwork to
+        // the largest scale that still fits this garment's printable area.
+        scale: Math.min(
+          Math.max(action.scale, MIN_SCALE),
+          maxScaleFor(layer, state.design.garment),
+        ),
+      }));
+
+    case "rotateLayer":
+      return mapLayer(state, action.id, (layer) => ({ ...layer, rotation: action.rotation }));
 
     case "selectLayer": {
       if (action.id !== null && !state.design.layers.some((layer) => layer.id === action.id)) {
