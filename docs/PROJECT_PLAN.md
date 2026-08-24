@@ -1,4 +1,4 @@
-# Cognition Merch Designer — Project Plan (v5.1)
+# Cognition Merch Designer — Project Plan (v5.2)
 
 Scope re-set with Rush on 2026-08-24: this is **not a store**. It is a **design tool** — a user picks a blank garment, drags Cognition artwork onto it, arranges it, saves the design, and downloads an image. No browsing a catalog, no cart, no checkout, no prices.
 
@@ -31,7 +31,7 @@ Team: **Rush** product lead · **Gina** technical lead · **Robin** process lead
 3. Direct manipulation works: drag to move, handles to resize proportionally and to rotate, layer order controls, delete. Every gesture also has a keyboard equivalent.
 4. Artwork cannot be placed outside the printable area — the design stays physically plausible.
 5. Saved designs survive a reload and a browser restart; the gallery lists them with a thumbnail, name, and date, and a design can be reopened, renamed, duplicated, and deleted.
-6. Downloaded PNG matches what is on screen — same garment, colour, artwork, placement, scale, and rotation — at a fixed export size, with a transparent-free flat background, and it renders correctly when opened outside the browser.
+6. Downloaded PNG matches what is on screen — same garment, colour, artwork, placement, scale, and rotation — **at 2000×2000 px**, with a flat opaque background, and it renders correctly when opened outside the browser. It is a **mockup of the garment, not a print file** (see §3.1).
 7. Responsive from 360px to desktop: the editor is usable with touch on a phone, not just a mouse.
 8. Keyboard-only users can complete the golden path; no axe-core critical violations on the editor or the gallery.
 9. `npm run lint`, `tsc --noEmit`, and `npm run build` pass clean in CI on every PR.
@@ -109,6 +109,19 @@ Two consequences the team should agree on explicitly:
 
 ### Out of scope
 Accounts/auth, database, uploading arbitrary images, free text and fonts, real ordering or pricing, print-vendor APIs, i18n, collaboration.
+
+### 3.1 Scope decisions closed by Rush, 2026-08-24
+
+Four readings of the brief that would each have changed the product. All now settled — treat them as closed, and re-open only with Rush.
+
+| Question | Decision | What it rules out |
+|---|---|---|
+| Does "drag Cognition images" mean any image, or ours? | **The fixed set of three marks** — Cognition, Devin, otter | No uploads: no file handling, no moderation, no arbitrary aspect ratios, no asset CMS |
+| Is the download a garment mockup or a printer-facing file? | **A mockup** — the artwork composited on the garment | No transparent-background artwork export, no print dimensions or bleed, no vendor hand-off (that stays O7) |
+| Can users add text, e.g. a name on the back? | **No text** | No font loading, no input sanitisation, no brand risk from arbitrary strings |
+| What export size? | **2000×2000 px**, and we do **not** claim print-readiness | See below |
+
+**On export size specifically.** 2000px is chosen to look crisp on any screen and in a deck. It is deliberately not a print resolution: the otter is a 400×400 raster, so a genuinely print-ready export would upscale it 10× and visibly soften. The plan therefore describes the download as a mockup everywhere, and the UI does not use the word "print". Making it print-ready is an asset problem, not a code problem — it needs a vector or ≥2000px otter, after which raising `EXPORT_SIZE` is a one-line change.
 
 ## 4. Technical Approach
 
@@ -203,7 +216,8 @@ Two properties this buys, and they are the reason for the shape:
 | Repo + write access | Gina | T1 | Done — `bootcamp-team4/devin-swag` |
 | Otter mascot artwork | Rush | T1 | **Resolved** — `public/brand/mark-otter.png` (400×400 RGB). The white matte is keyed out **once, at asset intake in T1**, not at render time: doing it per-render would drag a canvas pass into the pure renderer and slow every thumbnail. Full-colour, so it is the one mark that does not invert per colourway |
 | Persistence decision: local-only vs. shareable | Gina | T8 | **Resolved — local-only.** No backend. Share-by-URL stays optional scope (O1), which the store seam keeps cheap |
-| Export resolution and whether print-readiness is claimed | Rush | T9 | Open — the otter is 400px, which caps honest export quality |
+| Export resolution and whether print-readiness is claimed | Rush | T9 | **Resolved — 2000×2000, mockup only, print-readiness explicitly not claimed** (Rush, 2026-08-24). The otter's 400px cap is the reason; see §3.1 |
+| Scope: uploads, text, and what "download" means | Rush | T5, T9 | **Resolved** — three fixed marks, no text, mockup download (Rush, 2026-08-24). See §3.1 |
 | Brand approval on user-generated designs | Rush → Marketing | before external sharing | Open — users can now produce off-brand layouts, which v4 could not |
 | Hosting / Vercel account | — | — | **Removed** — local-only, no deployment (Gina, 2026-08-24) |
 
@@ -277,7 +291,7 @@ Estimates are in Devin sessions (S ≈ ¼, M ≈ ½, L ≈ 1). "Owner" is the hu
 | T6 | Transform: move, scale, rotate | Rush | Cloud + Desktop | L | T5 | Selected layer shows handles; drag to move, corner handles scale proportionally, rotate handle rotates; state changes go through the `useDesign` reducer, never direct mutation; **clamping uses the rotated bounding box**, so a rotated mark cannot poke outside the printable area; min/max scale enforced; arrow keys nudge, `+`/`-` scale, `[`/`]` rotate; transform maths unit-tested with no DOM |
 | T7 | Garment & colour picker | Rush | Cloud | S | T5 | Switching garment or colour keeps existing layers, re-clamping them into the new printable area; state reflected in the URL; caps visibly constrain artwork size |
 | T8 | Save, autosave & persistence | Robin | Cloud | M | T2, T6 | `DesignStore` interface with a `localStorage` implementation; explicit save with a name; in-progress design autosaved and restored after reload and browser restart; store unit-tested against an in-memory implementation of the same interface; a second tab's changes refresh rather than clobber silently (`storage` event); versioned payload so a schema change does not crash on old saved designs |
-| T9 | PNG download | Gina | Cloud + Desktop | M | T3, T8 | Download produces a PNG matching the editor exactly at the agreed export size; marks inlined as data URIs; test asserts the exported bitmap is not blank and differs between two different designs; filename derived from the design name; downloaded file opens correctly outside the browser |
+| T9 | PNG download | Gina | Cloud + Desktop | M | T3, T8 | Download produces a PNG matching the editor exactly at 2000×2000 px; marks inlined as data URIs; test asserts the exported bitmap is not blank and differs between two different designs; filename derived from the design name; downloaded file opens correctly outside the browser |
 | T10 | My designs gallery | Robin | Cloud | M | T8, T3 | Client-rendered with a skeleton while the store loads — no hydration mismatch; thumbnails from the same renderer; open, rename, duplicate, delete with confirmation; empty state links to the editor; copy states designs are stored in this browser only; sorted by last updated |
 | T11 | Responsive, a11y & touch pass | Rush | Cloud + Desktop | M | T7, T10 | Editor usable with touch at 360px; layer list gives keyboard and screen-reader users everything the canvas gives pointer users; focus visible and managed on select/delete; axe-core zero critical violations on editor and gallery |
 | T12 | E2E, CI & local-run docs | Robin | Cloud | M | T11, T9 | Playwright golden path green in CI including a real download assertion; unit tests in CI; **README verified by running it from a clean clone on a machine that has never built the project** — two commands, no env vars, no accounts; README also explains the design model and the storage seam |
@@ -353,7 +367,7 @@ Queued questions rather than guesses, one per topic:
 |---|---|---|---|
 | 1 | Approve this v5 pivot, the design model, and the DoD | Rush | Everything |
 | 2 | Decide local-only vs. shareable persistence | Rush → Gina | T8, and possibly the whole architecture |
-| 3 | Confirm export size and whether we claim print-readiness | Rush | T9 |
+| 3 | ~~Confirm export size and whether we claim print-readiness~~ | Rush | **Done** — 2000px mockup, §3.1 |
 | 4 | Branch protection on `main` | Gina | Merges |
 | 5 | Re-file tickets against v5 (v4's T5–T10 are void); stand up the board | Robin | Tracking |
 | 6 | On approval: PR 1, then PRs 2–4 in parallel | Gina / Rush / Robin | The build |
