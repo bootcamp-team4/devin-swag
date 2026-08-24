@@ -1,5 +1,8 @@
 // Dev-only reference page. It is the approval gate for the printable-area
 // rectangles: they are approved by eye from here, not in code review.
+import { useState } from "react";
+import GarmentPicker, { type GarmentSelection } from "../components/editor/GarmentPicker.tsx";
+import { fitDesignToGarment } from "../components/editor/fitDesignToGarment.ts";
 import {
   COLOURWAYS,
   GARMENTS,
@@ -73,6 +76,30 @@ const examples = [
   },
 ];
 
+const DEMO_LAYERS = [
+  { id: "d1", markId: "otter", x: 0.5, y: 0.45, scale: 1, rotation: 0 },
+  { id: "d2", markId: "devin", x: 0.5, y: 0.85, scale: 0.9, rotation: 6 },
+] as const;
+
+function PickerDemo({ start }: { start: GarmentSelection }) {
+  const [design, setDesign] = useState<Design>(() =>
+    createDesign({ ...start, layers: DEMO_LAYERS.map((layer) => ({ ...layer })) }),
+  );
+
+  function select(next: GarmentSelection) {
+    setDesign((current) => ({ ...fitDesignToGarment(current, next.garment), colour: next.colour }));
+  }
+
+  return (
+    <div className="flex items-start gap-4 rounded border border-rule p-3">
+      <div className="w-72">
+        <GarmentPicker garment={design.garment} colour={design.colour} onChange={select} />
+      </div>
+      <Tile design={design} outline caption="Layers re-fitted into the new printable area" />
+    </div>
+  );
+}
+
 export default function ContactSheetRoute() {
   return (
     <section>
@@ -89,6 +116,16 @@ export default function ContactSheetRoute() {
           <Tile key={blank.key} design={blank.design} caption={blank.caption} outline />
         ))}
       </div>
+      <h2 className="mt-8 text-base font-medium">Garment and colour picker</h2>
+      <p className="mb-4 max-w-2xl text-sm text-muted">
+        Switching garment re-fits the layers: artwork too large for the new printable area is
+        scaled down instead of being cropped or dropped.
+      </p>
+      <div className="flex flex-wrap gap-4">
+        <PickerDemo start={{ garment: "tshirt", colour: "black" }} />
+        <PickerDemo start={{ garment: "cap", colour: "white" }} />
+      </div>
+
       <h2 className="mt-8 text-base font-medium">Layered examples</h2>
       <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
         {examples.map((example) => (
