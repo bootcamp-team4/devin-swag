@@ -67,7 +67,7 @@ type Layer = {
 Two consequences the team should agree on explicitly:
 
 1. **Coordinates are normalised, never pixels.** The same design must render identically in a 320px thumbnail, an 800px editor, and a 2000px export. Storing pixels makes all three disagree; storing fractions makes the renderer the only thing that knows about size.
-2. **One renderer, three consumers.** The editor, the gallery thumbnail, and the PNG export all call the same `renderDesign(design, size)`. Any divergence between what you see and what you download is a bug in one component, not three.
+2. **One renderer, three consumers.** The editor, the gallery thumbnail, and the PNG export all call the same `renderDesign(design, size)`. Any divergence between what you see and what you download is a bug in one component, not three. See §4 for why that function returns a scene description rather than markup.
 
 **Garments and printable areas**
 
@@ -112,12 +112,78 @@ Accounts/auth, database, uploading arbitrary images, free text and fonts, real o
 
 ## 4. Technical Approach
 
+### 4.0 Layering
+
+Five layers, dependencies pointing downward only. The dividing line is not client/server — there is no server — it is **React-aware vs. not**: layers 1–3 are plain TypeScript, testable in Node, with no DOM beyond the store's single `localStorage` call.
+
+```mermaid
+flowchart TD
+    subgraph L5["5 · Surfaces (routes)"]
+        EditorPage["/ editor"]
+        GalleryPage["/designs gallery"]
+    end
+
+    subgraph L4["4 · Interaction (React + Pointer Events)"]
+        Canvas["EditorCanvas — hit-test · drag · handles"]
+        LayerList["LayerList — select · reorder · delete"]
+        Tray["ArtworkTray"]
+        State["useDesign() reducer"]
+    end
+
+    subgraph L3["3 · Persistence"]
+        Store["DesignStore — list · get · save · remove"]
+        LS[("localStorage")]
+    end
+
+    subgraph L2["2 · Renderer"]
+        Render["renderDesign(design, size) → Scene"]
+        Adapters["toReactSvg · toSvgString"]
+        Export["exportPng — SVG → data-URI → canvas → Blob"]
+    end
+
+    subgraph L1["1 · Data model (pure)"]
+        Types["Design · Layer types"]
+        Geom["printable areas · clampLayer · normalise"]
+    end
+
+    EditorPage --> Canvas & Tray & LayerList & State
+    GalleryPage --> Store
+    GalleryPage --> Adapters
+    Canvas -- "pointer delta → clampLayer()" --> Geom
+    Canvas --> Adapters
+    Tray & LayerList --> State
+    State --> Types
+    State -- "autosave / save" --> Store
+    EditorPage -- "download" --> Export
+    Store --> LS
+    Store --> Types
+    Adapters --> Render
+    Render --> Types
+    Render --> Geom
+    Export --> Adapters
+```
+
+Two properties this buys, and they are the reason for the shape:
+
+1. **Every pixel comes from `renderDesign`.** Editor, thumbnail, and export all reach it. That is the structural guarantee behind DoD 6 — "the download matches the screen" is enforced by the dependency graph, not by discipline.
+2. **Layer 4 does no geometry.** A drag produces a delta, hands it to `clampLayer()` in layer 1, and dispatches the result. So the fiddly maths of an editor is tested in Vitest with no DOM, and is not trapped inside a component.
+
 **Stack (chosen, with reasons):**
-- **Next.js 16 (App Router) + TypeScript + Tailwind v4** — same as v4, but note the editor is a client-side app; server components only carry the shell and the gallery route.
-- **No database, no backend.** Designs live in `localStorage` behind a `DesignStore` interface (`list / get / save / remove`). Swapping in a real backend later means one implementation of that interface, not a rewrite — this is the same "seam" idea as v4's commerce seam, relocated to where the state actually is.
-- **SVG for rendering, canvas only for export.** The editor is an inline `<svg>`: garment path plus one `<image>` per layer. This gives crisp scaling, free hit-testing, and real DOM nodes we can make focusable — which is what makes the keyboard and screen-reader story achievable at all. Export serialises that same SVG and rasterises it once:
+- **Next.js 16 (App Router) + TypeScript + Tailwind v4** — but be honest about what Next is doing here: this is a client-side app in a Next shell. Server components carry the header, footer, and routing only. **Both the editor and the gallery are client-rendered**, because all state lives in `localStorage`, which does not exist during server rendering — a server-rendered gallery would render an empty list and then hydrate into a different one. The gallery reads the store in an effect and shows a skeleton until it does. Next is earning its place through routing, bundling, and preview deploys, not through SSR.
+- **No database, no backend — local-only, decided by Gina on 2026-08-24.** Designs live in `localStorage` behind a `DesignStore` interface (`list / get / save / remove`). Swapping in a real backend later means one implementation of that interface, not a rewrite — the same "seam" idea as v4's commerce seam, relocated to where the state actually is. Two consequences of local-only that the team should accept knowingly: designs are **per-browser and non-shareable** (clearing site data loses them, which the UI says out loud), and **two open tabs are last-write-wins** — the store listens for the `storage` event and refreshes the gallery rather than pretending to merge.
+- **Layers 1–3 contain no React and no DOM.** The types, the geometry, the renderer, and the store are plain TypeScript modules, unit-testable in Node. Only the interaction components and the routes know about events and re-renders. Dependencies point downward only; nothing in `src/lib` imports from `src/components` or `src/app`.
+- **Design state is a reducer, not a bag of setters.** `useDesign()` dispatches `{type: "move" | "scale" | "rotate" | "place" | "reorder" | "delete"}` against an immutable `Design`. This costs nothing now and is the difference between undo/redo (O2) being an afternoon and being a refactor — with mutable state threaded through component callbacks, it is a refactor.
+- **SVG for rendering, canvas only for export.** The editor is an inline `<svg>`: garment path plus one `<image>` per layer. This gives crisp scaling, free hit-testing, and real DOM nodes we can make focusable — which is what makes the keyboard and screen-reader story achievable at all.
+- **The renderer returns a scene, not markup.** This is the one place where "one renderer, three consumers" nearly breaks. The editor needs *React elements* — per-layer nodes it can attach refs, focus, and pointer handlers to — while the export needs a *string* to rasterise. A renderer that returned an SVG string would force the editor into `dangerouslySetInnerHTML`, which throws away exactly the DOM nodes the accessibility story depends on. So:
   ```ts
-  const svg = renderDesignToString(design, EXPORT_SIZE);
+  renderDesign(design, size): Scene        // pure: [{garmentPath}, {markId, href, transform}, …]
+  toReactSvg(scene): ReactElement          // editor + gallery thumbnail
+  toSvgString(scene): string               // export only
+  ```
+  Both adapters are trivial and share the scene, so the geometry still cannot diverge — but neither surface is contorted to fit the other.
+- **Export** serialises the same scene and rasterises it once:
+  ```ts
+  const svg = toSvgString(renderDesign(design, EXPORT_SIZE));
   const img = await loadImage("data:image/svg+xml;base64," + btoa(svg));
   ctx.drawImage(img, 0, 0);            // canvas at EXPORT_SIZE
   canvas.toBlob(blob => downloadAs(`${design.name}.png`, blob));
@@ -134,8 +200,8 @@ Accounts/auth, database, uploading arbitrary images, free text and fonts, real o
 | Dependency | Owner | Needed by | Status |
 |---|---|---|---|
 | Repo + write access | Gina | T1 | Done — `bootcamp-team4/devin-swag` |
-| Otter mascot artwork | Rush | T3 | **Resolved** — `public/brand/mark-otter.png` (400×400 RGB). Needs alpha (it ships on a white matte) and is full-colour, so it is the one mark that does not invert per colourway |
-| Persistence decision: local-only vs. shareable | Rush → Gina | T7 | **Open** — plan assumes local-only; a share requirement changes the architecture, not just a ticket |
+| Otter mascot artwork | Rush | T1 | **Resolved** — `public/brand/mark-otter.png` (400×400 RGB). The white matte is keyed out **once, at asset intake in T1**, not at render time: doing it per-render would drag a canvas pass into the pure renderer and slow every thumbnail. Full-colour, so it is the one mark that does not invert per colourway |
+| Persistence decision: local-only vs. shareable | Gina | T8 | **Resolved — local-only.** No backend. Share-by-URL stays optional scope (O1), which the store seam keeps cheap |
 | Export resolution and whether print-readiness is claimed | Rush | T9 | Open — the otter is 400px, which caps honest export quality |
 | Brand approval on user-generated designs | Rush → Marketing | before external sharing | Open — users can now produce off-brand layouts, which v4 could not |
 | Vercel account/team for deploys | Robin | T11 | Open |
@@ -147,7 +213,8 @@ Accounts/auth, database, uploading arbitrary images, free text and fonts, real o
 | Export renders blank because marks are external `href`s | Silent, ships easily, embarrassing in the demo | Data-URI inlining is an acceptance criterion of T9, with a test that asserts non-blank pixels in the exported bitmap |
 | Drag interaction is the hardest thing here and is on the critical path | Slips everything downstream | T5/T6 is the only L-sized ticket before the gallery, it is front-loaded as an early parallel PR, and the fallback is click-to-place plus numeric position and scale inputs, which satisfies every DoD item except the feel |
 | Touch drag conflicts with page scroll on mobile | Editor unusable on a phone, and DoD 7 fails | Pointer Events with `touch-action: none` on the canvas only; verified on Desktop at 360px in T11, not assumed |
-| Otter is a 400×400 raster with a white matte | White box on black garments; soft edges when scaled up | T3 keys out the matte; export size capped at what 400px supports; a vector or ≥2000px otter is a prerequisite for any real print run (out of scope) |
+| Otter is a 400×400 raster with a white matte | White box on black garments; soft edges when scaled up | Matte keyed out once in T1 and committed as an alpha PNG; export size capped at what 400px supports; a vector or ≥2000px otter is a prerequisite for any real print run (out of scope) |
+| Designs are per-browser and invisible to everyone else | A user "saves" a design, clears site data, and loses it | Accepted consequence of local-only; the gallery says so in plain words, and PNG download is the export path that outlives the browser |
 | Users produce off-brand or offensive layouts | Brand risk the storefront version did not have | Fixed asset set (no uploads, no text) is the primary control; brand review before anything is shared externally |
 | "Design tool" invites infinite polish — snapping, undo, alignment, filters | Blows the timebox | All of it is optional scope O1–O7; the golden path ships first |
 | Scope drifts back toward ordering | Rebuilds the store we just deleted | O8 is a hand-off, not a checkout; anything beyond it needs a new plan |
@@ -201,16 +268,16 @@ Estimates are in Devin sessions (S ≈ ¼, M ≈ ½, L ≈ 1). "Owner" is the hu
 | ID | Title | Owner | Surface | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|---|
 | T0 | Repo + Vercel access | Gina | — | — | — | Branch protection on `main` requiring one review and green CI; Vercel project connected or an explicit "no deploy" decision recorded |
-| T1 | Scaffold app, CI, brand tokens | Gina | Cloud | M | T0 | Next.js 16 + TS + Tailwind builds; lint/typecheck/build green in GitHub Actions; press-kit assets under `public/brand`; marks also exported as base64 constants for the export path; README |
+| T1 | Scaffold app, CI, brand assets | Gina | Cloud | M | T0 | Next.js 16 + TS + Tailwind builds; lint/typecheck/build green in GitHub Actions; press-kit assets under `public/brand`; **otter's white matte keyed out and committed as an alpha PNG**; all three marks also exported as base64 constants for the export path; README |
 | T2 | Design data model | Gina | Cloud | M | T1 | `Design`/`Layer` types as in §3.0; per-garment printable-area geometry; clamping and normalisation helpers; unit tests cover clamping at the bounds, rotation wrap-around, and round-tripping a design through JSON |
-| T3 | Garment renderer | Gina | Cloud + Desktop | L | T1, T2 | `renderDesign(design, size)` renders all 6 garment×colour blanks with layers composited at correct position, scale, rotation and z-order; identical output at 320/800/2000px; otter matte keyed out; alt text describes the design; no external image requests; contact-sheet screenshot attached to the PR |
-| T4 | App shell, editor & gallery routes | Robin | Cloud | S | T1 | Header, footer, `/` (editor) and `/designs` (gallery) routes; responsive at 360px; full keyboard navigation; pages may be stubs |
+| T3 | Garment renderer | Gina | Cloud + Desktop | L | T1, T2 | `renderDesign(design, size) → Scene` plus `toReactSvg` / `toSvgString` adapters; all 6 garment×colour blanks render with layers composited at correct position, scale, rotation and z-order; a test asserts the two adapters produce the same geometry from one scene; identical output at 320/800/2000px; alt text describes the design; no external image requests; contact-sheet screenshot attached to the PR |
+| T4 | App shell, editor & gallery routes | Robin | Cloud | S | T1 | Header, footer, `/` (editor) and `/designs` (gallery) routes; both marked client-rendered with loading states; responsive at 360px; full keyboard navigation; pages may be stubs |
 | T5 | Artwork tray & drag-to-place | Rush | Cloud + Desktop | L | T3, T4 | Three marks in a tray; drag onto the garment places a layer where dropped; click/Enter places at centre; works with mouse, touch, and keyboard; page does not scroll during a touch drag; placement clamped to the printable area |
-| T6 | Transform: move, scale, rotate | Rush | Cloud + Desktop | L | T5 | Selected layer shows handles; drag to move, corner handles scale proportionally, rotate handle rotates; artwork cannot leave the printable area or exceed min/max scale; arrow keys nudge, `+`/`-` scale, `[`/`]` rotate; transform maths unit-tested independently of the DOM |
+| T6 | Transform: move, scale, rotate | Rush | Cloud + Desktop | L | T5 | Selected layer shows handles; drag to move, corner handles scale proportionally, rotate handle rotates; state changes go through the `useDesign` reducer, never direct mutation; **clamping uses the rotated bounding box**, so a rotated mark cannot poke outside the printable area; min/max scale enforced; arrow keys nudge, `+`/`-` scale, `[`/`]` rotate; transform maths unit-tested with no DOM |
 | T7 | Garment & colour picker | Rush | Cloud | S | T5 | Switching garment or colour keeps existing layers, re-clamping them into the new printable area; state reflected in the URL; caps visibly constrain artwork size |
-| T8 | Save, autosave & persistence | Robin | Cloud | M | T2, T6 | `DesignStore` interface with a `localStorage` implementation; explicit save with a name; in-progress design autosaved and restored after reload and browser restart; store unit-tested against a fake backing store; quota-exceeded handled with a user-visible message |
+| T8 | Save, autosave & persistence | Robin | Cloud | M | T2, T6 | `DesignStore` interface with a `localStorage` implementation; explicit save with a name; in-progress design autosaved and restored after reload and browser restart; store unit-tested against an in-memory implementation of the same interface; a second tab's changes refresh rather than clobber silently (`storage` event); versioned payload so a schema change does not crash on old saved designs |
 | T9 | PNG download | Gina | Cloud + Desktop | M | T3, T8 | Download produces a PNG matching the editor exactly at the agreed export size; marks inlined as data URIs; test asserts the exported bitmap is not blank and differs between two different designs; filename derived from the design name; downloaded file opens correctly outside the browser |
-| T10 | My designs gallery | Robin | Cloud | M | T8, T3 | Thumbnails rendered from the same renderer; open, rename, duplicate, delete with confirmation; empty state links to the editor; sorted by last updated |
+| T10 | My designs gallery | Robin | Cloud | M | T8, T3 | Client-rendered with a skeleton while the store loads — no hydration mismatch; thumbnails from the same renderer; open, rename, duplicate, delete with confirmation; empty state links to the editor; copy states designs are stored in this browser only; sorted by last updated |
 | T11 | Responsive, a11y & touch pass | Rush | Cloud + Desktop | M | T7, T10 | Editor usable with touch at 360px; layer list gives keyboard and screen-reader users everything the canvas gives pointer users; focus visible and managed on select/delete; axe-core zero critical violations on editor and gallery |
 | T12 | E2E, CI & deploy | Robin | Cloud | M | T11, T9 | Playwright golden path green in CI including a real download assertion; unit tests in CI; preview URL live or local-run documented; README explains the design model and the storage seam |
 | T13 | Demonstration script & recording | Rush | Desktop | S | T12 | 3–5 minute recorded walkthrough — blank tee to downloaded PNG — plus a written script for the live readout |
@@ -274,7 +341,7 @@ Cuts come out of *fidelity*, never out of the golden path: place artwork → sav
 ## 11. Coaching Asks for the DEs
 
 Queued questions rather than guesses, one per topic:
-1. **Technical (Gina):** is hand-rolled SVG + Pointer Events the right call for a drag-and-drop editor, or does avoiding a canvas library cost more in accessibility and edge cases than it saves in dependency weight?
+1. **Technical (Gina):** is hand-rolled SVG + Pointer Events the right call for a drag-and-drop editor, or does avoiding a canvas library cost more in accessibility and edge cases than it saves in dependency weight? Second-order: with everything client-rendered and no backend, is Next.js still the right shell, or is it now scaffolding we are paying for and not using?
 2. **Task scoping (Robin):** twelve must-have PRs for a team of three — is the editor split (place / transform / picker as three PRs) the right granularity, or does slicing one interaction across three PRs create more review overhead than it saves?
 3. **Prompting (all):** the best way to specify an *interaction* to a Cloud session so the PR comes back feeling right, given the session cannot feel the drag itself — and how much of that verification belongs on Desktop instead.
 4. **Product usage (all):** how to divide work between parallel child sessions and one long session for PRs 2–4, and how to keep three concurrent sessions from colliding on the same files.
