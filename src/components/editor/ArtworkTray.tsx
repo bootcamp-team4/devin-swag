@@ -3,7 +3,7 @@ import { MARK_IDS, MARK_LABELS, type MarkId } from "../../lib/design.ts";
 import {
   INK_TOKEN,
   MARK_COGNITION_SVG,
-  MARK_DEVIN_SVG,
+  MARK_DEVIN_ON_WHITE_PNG,
   MARK_OTTER_PNG,
 } from "../../brand/marks.ts";
 import type { DesignAction, EditorState } from "../../state/designReducer.ts";
@@ -15,10 +15,8 @@ const DRAG_THRESHOLD = 4;
 /** Tray thumbnails sit on the light panel, so the ink is always dark. */
 function previewSrc(markId: MarkId): string {
   if (markId === "otter") return MARK_OTTER_PNG;
-  const svg = (markId === "cognition" ? MARK_COGNITION_SVG : MARK_DEVIN_SVG).replaceAll(
-    INK_TOKEN,
-    "#0a0a0a",
-  );
+  if (markId === "devin") return MARK_DEVIN_ON_WHITE_PNG;
+  const svg = MARK_COGNITION_SVG.replaceAll(INK_TOKEN, "#0a0a0a");
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
