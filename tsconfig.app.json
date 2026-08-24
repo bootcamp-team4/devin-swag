@@ -17,7 +17,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "types": []
+    "types": ["vite/client"]
   },
   "include": ["src"]
 }
