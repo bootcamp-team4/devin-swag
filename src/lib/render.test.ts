@@ -85,19 +85,25 @@ describe("renderDesign", () => {
     expect(toSvgString(scene)).toContain(`rotate(30 ${mark.cx} ${mark.cy})`);
   });
 
-  it("inks the monochrome marks with the garment's contrast colour", () => {
-    function inkOf(colour: "black" | "white", markId: "cognition" | "devin") {
-      const scene = renderDesign(design({ colour, layers: [layer({ markId })] }), 400);
-      const svg = atob(scene.marks[0].href.replace("data:image/svg+xml;base64,", ""));
-      return svg;
+  it("inks the monochrome Cognition mark with the garment's contrast colour", () => {
+    function inkOf(colour: "black" | "white") {
+      const scene = renderDesign(design({ colour, layers: [layer({ markId: "cognition" })] }), 400);
+      return atob(scene.marks[0].href.replace("data:image/svg+xml;base64,", ""));
     }
-    for (const markId of ["cognition", "devin"] as const) {
-      expect(inkOf("black", markId)).toContain(PALETTES.black.ink);
-      expect(inkOf("black", markId)).not.toContain(PALETTES.white.ink);
-      expect(inkOf("white", markId)).toContain(PALETTES.white.ink);
-      expect(inkOf("white", markId)).not.toContain("#ffffff");
-      expect(inkOf("white", markId)).not.toContain("__INK__");
-    }
+    expect(inkOf("black")).toContain(PALETTES.black.ink);
+    expect(inkOf("black")).not.toContain(PALETTES.white.ink);
+    expect(inkOf("white")).toContain(PALETTES.white.ink);
+    expect(inkOf("white")).not.toContain("#ffffff");
+    expect(inkOf("white")).not.toContain("__INK__");
+  });
+
+  it("swaps the full-colour Devin lockup per colourway instead of inking it", () => {
+    const hrefs = COLOURWAYS.map(
+      (colour) =>
+        renderDesign(design({ colour, layers: [layer({ markId: "devin" })] }), 400).marks[0].href,
+    );
+    expect(hrefs[0]).not.toBe(hrefs[1]);
+    for (const href of hrefs) expect(href.startsWith("data:image/png;base64,")).toBe(true);
   });
 
   it("uses the full-colour otter as-is on both colourways", () => {

@@ -20,7 +20,8 @@ import { GARMENT_PARTS, UNIT, type GarmentPart } from "./garment-paths.ts";
 import {
   INK_TOKEN,
   MARK_COGNITION_SVG,
-  MARK_DEVIN_SVG,
+  MARK_DEVIN_ON_BLACK_PNG,
+  MARK_DEVIN_ON_WHITE_PNG,
   MARK_OTTER_PNG,
 } from "../brand/marks.ts";
 
@@ -86,13 +87,14 @@ export type Scene = {
   title: string;
 };
 
-function markHref(markId: MarkId, ink: string): string {
+function markHref(markId: MarkId, colour: Colourway, ink: string): string {
   if (markId === "otter") return MARK_OTTER_PNG;
-  const svg = (markId === "cognition" ? MARK_COGNITION_SVG : MARK_DEVIN_SVG).replaceAll(
-    INK_TOKEN,
-    ink,
-  );
-  return svgDataUri(svg);
+  // The Devin lockup is full colour, so it ships as two artworks rather than
+  // one inked silhouette: the wordmark flips, the hexagons do not.
+  if (markId === "devin") {
+    return colour === "black" ? MARK_DEVIN_ON_BLACK_PNG : MARK_DEVIN_ON_WHITE_PNG;
+  }
+  return svgDataUri(MARK_COGNITION_SVG.replaceAll(INK_TOKEN, ink));
 }
 
 function svgDataUri(svg: string): string {
@@ -121,7 +123,7 @@ function markToScene(layer: Layer, design: Design, size: number, ink: string): S
     kind: "mark",
     layerId: layer.id,
     markId: layer.markId,
-    href: markHref(layer.markId, ink),
+    href: markHref(layer.markId, design.colour, ink),
     x: box.cx - box.width / 2,
     y: box.cy - box.height / 2,
     width: box.width,
