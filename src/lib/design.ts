@@ -47,7 +47,7 @@ export const PRINTABLE_AREAS: Record<Garment, Rect> = {
 /** Intrinsic height ÷ width of each mark's artwork. */
 export const MARK_ASPECT: Record<MarkId, number> = {
   cognition: 1,
-  devin: 24 / 160,
+  devin: 183 / 531,
   otter: 1,
 };
 

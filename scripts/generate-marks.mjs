@@ -26,7 +26,9 @@ export const INK_TOKEN = ${JSON.stringify(INK_TOKEN)};
 
 export const MARK_COGNITION_SVG = ${JSON.stringify(monoSvg("mark-cognition.svg"))};
 
-export const MARK_DEVIN_SVG = ${JSON.stringify(monoSvg("mark-devin.svg"))};
+export const MARK_DEVIN_ON_BLACK_PNG = ${JSON.stringify(rasterDataUri("mark-devin-on-black.png"))};
+
+export const MARK_DEVIN_ON_WHITE_PNG = ${JSON.stringify(rasterDataUri("mark-devin-on-white.png"))};
 
 export const MARK_OTTER_PNG = ${JSON.stringify(rasterDataUri("mark-otter.png"))};
 `;
