@@ -217,11 +217,16 @@ describe("subscribe", () => {
       addEventListener: (type: string, handler: (event: { key: string | null }) => void) => {
         if (type === "storage") handlers.push(handler);
       },
+      removeEventListener: (type: string, handler: (event: { key: string | null }) => void) => {
+        if (type !== "storage") return;
+        const index = handlers.indexOf(handler);
+        if (index !== -1) handlers.splice(index, 1);
+      },
     });
     try {
       const store = createLocalDesignStore(backing);
       const listener = vi.fn();
-      store.subscribe(listener);
+      const unsubscribe = store.subscribe(listener);
       expect(handlers).toHaveLength(1);
 
       handlers[0]({ key: DESIGNS_KEY });
@@ -232,6 +237,13 @@ describe("subscribe", () => {
 
       handlers[0]({ key: "unrelated-key" });
       expect(listener).toHaveBeenCalledTimes(2);
+
+      // The window listener belongs to the subscription, not to the store, so
+      // a route that mounts and unmounts leaves nothing behind.
+      unsubscribe();
+      expect(handlers).toHaveLength(0);
+      store.subscribe(vi.fn());
+      expect(handlers).toHaveLength(1);
     } finally {
       vi.unstubAllGlobals();
     }

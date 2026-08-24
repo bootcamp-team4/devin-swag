@@ -134,11 +134,15 @@ export function createLocalDesignStore(backing: StorageLike = defaultBacking()):
     }
   };
 
-  if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
-    window.addEventListener("storage", (event: StorageEvent) => {
-      if (event.key === null || event.key === DESIGNS_KEY || event.key === DRAFT_KEY) notify();
-    });
-  }
+  // The cross-tab listener is tied to subscription rather than construction:
+  // routes build a store per mount, and a listener attached in the constructor
+  // would outlive every one of them.
+  const canListen =
+    typeof window !== "undefined" && typeof window.addEventListener === "function";
+
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key === DESIGNS_KEY || event.key === DRAFT_KEY) notify();
+  };
 
   return {
     list() {
@@ -184,8 +188,12 @@ export function createLocalDesignStore(backing: StorageLike = defaultBacking()):
     },
 
     subscribe(listener) {
+      if (canListen && listeners.size === 0) window.addEventListener("storage", onStorage);
       listeners.add(listener);
-      return () => void listeners.delete(listener);
+      return () => {
+        listeners.delete(listener);
+        if (canListen && listeners.size === 0) window.removeEventListener("storage", onStorage);
+      };
     },
   };
 }
