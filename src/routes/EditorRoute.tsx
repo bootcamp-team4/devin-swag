@@ -1,16 +1,59 @@
-import { useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import ArtworkTray from "../components/editor/ArtworkTray.tsx";
+import DownloadButton from "../components/editor/DownloadButton.tsx";
 import EditorCanvas from "../components/editor/EditorCanvas.tsx";
+import GarmentPicker from "../components/editor/GarmentPicker.tsx";
 import { useDocumentTitle } from "../components/useDocumentTitle.ts";
+import { createLocalDesignStore, StorageQuotaError } from "../lib/store.ts";
 import { designReducer, initialEditorState } from "../state/designReducer.ts";
 
 /** Editor canvas size in pixels; the design itself is resolution-independent. */
 const CANVAS_SIZE = 520;
 
+/** Quiet period before the in-progress design is written to the draft slot. */
+const AUTOSAVE_DELAY = 400;
+
 export default function EditorRoute() {
   useDocumentTitle("Editor");
-  const [state, dispatch] = useReducer(designReducer, undefined, () => initialEditorState());
+  const store = useMemo(() => createLocalDesignStore(), []);
+  // The gallery hands a design over by writing it to the draft slot, so the
+  // draft is also how "open in the editor" arrives.
+  const [state, dispatch] = useReducer(designReducer, undefined, () =>
+    initialEditorState(store.loadDraft() ?? undefined),
+  );
   const canvasRef = useRef<HTMLDivElement | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+
+  const { design } = state;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        store.saveDraft(design);
+      } catch (error) {
+        setStatus(
+          error instanceof StorageQuotaError
+            ? "This browser is out of storage, so your work is not being saved."
+            : "Could not autosave your work.",
+        );
+      }
+    }, AUTOSAVE_DELAY);
+    return () => clearTimeout(timer);
+  }, [design, store]);
+
+  const onSave = useCallback(() => {
+    try {
+      const saved = store.save(design);
+      store.saveDraft(saved);
+      setStatus(`Saved “${saved.name}” to My designs.`);
+    } catch (error) {
+      setStatus(
+        error instanceof StorageQuotaError
+          ? "This browser is out of storage, so the design could not be saved."
+          : "Could not save the design.",
+      );
+    }
+  }, [design, store]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -35,9 +78,39 @@ export default function EditorRoute() {
         </section>
         <aside
           aria-label="Design controls"
-          className="min-h-[32rem] rounded-sm border border-rule p-4 text-sm"
+          className="min-h-[32rem] rounded-sm border border-rule p-4 text-sm flex flex-col gap-6"
         >
+          <GarmentPicker
+            garment={design.garment}
+            colour={design.colour}
+            onChange={({ garment, colour }) => {
+              dispatch({ type: "setGarment", garment });
+              dispatch({ type: "setColour", colour });
+            }}
+          />
           <ArtworkTray state={state} dispatch={dispatch} canvasRef={canvasRef} />
+          <div className="flex flex-col gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="font-medium text-ink">Design name</span>
+              <input
+                type="text"
+                value={design.name}
+                onChange={(event) => dispatch({ type: "setName", name: event.target.value })}
+                className="rounded-sm border border-rule px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={onSave}
+              className="self-start rounded-sm border border-rule px-3 py-2 text-sm font-medium text-ink hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              Save design
+            </button>
+            <DownloadButton design={design} />
+            <p role="status" aria-live="polite" className="text-xs text-muted">
+              {status}
+            </p>
+          </div>
         </aside>
       </div>
     </div>

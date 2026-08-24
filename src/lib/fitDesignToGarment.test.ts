@@ -5,7 +5,7 @@ import {
   createDesign,
   maxScaleFor,
   type Layer,
-} from "../../lib/design.ts";
+} from "./design.ts";
 import { fitDesignToGarment, fitLayerToGarment } from "./fitDesignToGarment.ts";
 
 function layer(overrides: Partial<Layer> = {}): Layer {

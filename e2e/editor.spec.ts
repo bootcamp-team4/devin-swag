@@ -47,19 +47,20 @@ test("dragging a mark onto the garment lands it inside the printable area", asyn
   await page.mouse.up();
 
   await expect(page.locator("svg image[data-layer-id]")).toHaveCount(1);
-  expectInside(await markBox(page), area);
+  // Re-measured: bounding boxes are viewport-relative, and focusing a control
+  // can scroll the page between the two reads.
+  expectInside(await markBox(page), await printableBox(page));
 });
 
 test("a mark can be placed, moved, nudged and deleted with the keyboard alone", async ({ page }) => {
   await page.goto("/");
-  const area = await printableBox(page);
 
   await page.getByRole("button", { name: "Otter mascot" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("svg image[data-layer-id]")).toHaveCount(1);
 
   const placed = await markBox(page);
-  expectInside(placed, area);
+  expectInside(placed, await printableBox(page));
 
   // Placing hands the keyboard the new layer, so nudging needs no extra Tab.
   const layer = page.getByRole("button", { name: "Otter mascot layer" });
@@ -68,7 +69,7 @@ test("a mark can be placed, moved, nudged and deleted with the keyboard alone", 
   for (let i = 0; i < 30; i += 1) await page.keyboard.press("ArrowUp");
   const nudged = await markBox(page);
   expect(nudged.y).toBeLessThan(placed.y);
-  expectInside(nudged, area);
+  expectInside(nudged, await printableBox(page));
 
   await page.keyboard.press("Escape");
   await expect(layer).toHaveAttribute("aria-pressed", "false");
@@ -92,5 +93,5 @@ test("dragging a placed mark moves it and keeps it inside the printable area", a
 
   const after = await markBox(page);
   expect(after.x).toBeGreaterThan(before.x);
-  expectInside(after, area);
+  expectInside(after, await printableBox(page));
 });

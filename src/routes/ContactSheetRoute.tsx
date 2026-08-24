@@ -2,7 +2,7 @@
 // rectangles: they are approved by eye from here, not in code review.
 import { useState } from "react";
 import GarmentPicker, { type GarmentSelection } from "../components/editor/GarmentPicker.tsx";
-import { fitDesignToGarment } from "../components/editor/fitDesignToGarment.ts";
+import { fitDesignToGarment } from "../lib/fitDesignToGarment.ts";
 import {
   COLOURWAYS,
   GARMENTS,

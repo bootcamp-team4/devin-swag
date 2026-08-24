@@ -13,6 +13,7 @@ import {
   type Layer,
   type MarkId,
 } from "../lib/design.ts";
+import { fitDesignToGarment } from "../lib/fitDesignToGarment.ts";
 
 export type EditorState = {
   design: Design;
@@ -33,6 +34,7 @@ export type DesignAction =
   | { type: "duplicateLayer"; id: string }
   | { type: "setGarment"; garment: Garment }
   | { type: "setColour"; colour: Colourway }
+  | { type: "setName"; name: string }
   | { type: "loadDesign"; design: Design };
 
 /** Offset of a duplicate from its original, in printable-area fractions. */
@@ -123,12 +125,16 @@ export function designReducer(state: EditorState, action: DesignAction): EditorS
 
     case "setGarment": {
       if (action.garment === state.design.garment) return state;
-      // The new printable area can be smaller, so every layer is re-clamped.
-      return { ...state, design: reclampDesign({ ...state.design, garment: action.garment }) };
+      // The cap's printable area is much smaller than the tee's, so artwork is
+      // shrunk to fit rather than clamped (which would only slide it inward).
+      return { ...state, design: fitDesignToGarment(state.design, action.garment) };
     }
 
     case "setColour":
       return { ...state, design: { ...state.design, colour: action.colour } };
+
+    case "setName":
+      return { ...state, design: { ...state.design, name: action.name } };
 
     case "loadDesign":
       return { design: reclampDesign(action.design), selectedLayerId: null };

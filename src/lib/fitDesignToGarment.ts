@@ -1,13 +1,11 @@
-// Pure helper: move a design onto another garment without losing artwork.
-// Lives next to the picker because it is a picker concern — src/lib stays
-// unaware of the UI that calls it.
+// Pure geometry: move a design onto another garment without losing artwork.
 import {
   clampLayer,
   maxScaleFor,
   type Design,
   type Garment,
   type Layer,
-} from "../../lib/design.ts";
+} from "./design.ts";
 
 /** Shrink a layer until it fits the garment, then pull it back inside. */
 export function fitLayerToGarment(layer: Layer, garment: Garment): Layer {
