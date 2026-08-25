@@ -2,7 +2,7 @@
 // rectangles: they are approved by eye from here, not in code review.
 import { useState } from "react";
 import GarmentPicker, { type GarmentSelection } from "../components/editor/GarmentPicker.tsx";
-import { fitDesignToGarment } from "../lib/fitDesignToGarment.ts";
+import { fitDesignToGarment, fitLayerToGarment } from "../lib/fitDesignToGarment.ts";
 import {
   COLOURWAYS,
   GARMENTS,
@@ -83,7 +83,12 @@ const DEMO_LAYERS = [
 
 function PickerDemo({ start }: { start: GarmentSelection }) {
   const [design, setDesign] = useState<Design>(() =>
-    createDesign({ ...start, layers: DEMO_LAYERS.map((layer) => ({ ...layer })) }),
+    createDesign({
+      // The demo layers are deliberately oversized, so fit them to the
+      // starting garment too — not only on a later switch.
+      ...start,
+      layers: DEMO_LAYERS.map((layer) => fitLayerToGarment({ ...layer }, start.garment)),
+    }),
   );
 
   function select(next: GarmentSelection) {
