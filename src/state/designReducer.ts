@@ -45,6 +45,7 @@ export type DesignAction =
   | { type: "setColour"; colour: Colourway }
   | { type: "setSide"; side: Side }
   | { type: "setName"; name: string }
+  | { type: "newDesign" }
   | { type: "loadDesign"; design: Design };
 
 /** Offset of a duplicate from its original, in printable-area fractions. */
@@ -184,6 +185,9 @@ export function designReducer(state: EditorState, action: DesignAction): EditorS
 
     case "setName":
       return { ...state, design: { ...state.design, name: action.name } };
+
+    case "newDesign":
+      return initialEditorState(createDesign());
 
     case "loadDesign":
       return { design: reclampDesign(action.design), selectedLayerId: null, currentSide: "front" };

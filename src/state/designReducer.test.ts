@@ -176,4 +176,15 @@ describe("designReducer", () => {
     expect(loaded.selectedLayerId).toBeNull();
     expect(loaded.design.layers[0].x).toBeLessThan(1);
   });
+
+  it("starts a fresh design with default state", () => {
+    const previous = withLayer({ markId: "otter" }, { name: "Saved design" });
+    const state = designReducer(previous, { type: "newDesign" });
+
+    expect(state.design.id).not.toBe(previous.design.id);
+    expect(state.design.layers).toHaveLength(0);
+    expect(state.design.name).toBe("Untitled design");
+    expect(state.selectedLayerId).toBeNull();
+    expect(state.currentSide).toBe("front");
+  });
 });

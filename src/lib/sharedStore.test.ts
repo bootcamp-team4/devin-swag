@@ -5,7 +5,9 @@ import { createLocalDesignStore, type StorageLike } from "./store";
 
 const design = (overrides: Partial<Design> = {}): Design =>
   createDesign({
-    layers: [{ id: "layer-1", markId: "cognition", side: "front", x: 0.5, y: 0.5, scale: 0.4, rotation: 0 }],
+    layers: [
+      { id: "layer-1", markId: "cognition", side: "front", x: 0.5, y: 0.5, scale: 0.4, rotation: 0 },
+    ],
     ...overrides,
   });
 
@@ -86,6 +88,26 @@ describe("shared store", () => {
     expect((await store.get(saved.id))?.name).toBe("Offline tee");
     // One failed request is enough; later calls do not retry the API.
     expect(failing).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives up on an API that never answers instead of loading forever", async () => {
+    // A hung request — the deployed symptom of a database that accepts the
+    // connection and then stalls — must abort, not stall the gallery.
+    const hanging = vi.fn(
+      (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+        }),
+    );
+    const local = createLocalDesignStore(memoryStorage());
+    const store = createSharedDesignStore({
+      ...options(hanging as unknown as typeof fetch),
+      local,
+      timeoutMs: 20,
+    });
+
+    expect(await store.list()).toEqual([]);
+    expect(store.mode()).toBe("local");
   });
 
   it("keeps the draft in this browser, never in the shared gallery", async () => {

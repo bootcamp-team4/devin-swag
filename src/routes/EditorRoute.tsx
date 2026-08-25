@@ -63,6 +63,17 @@ export default function EditorRoute() {
     }
   }, [design, store]);
 
+  const onNewDesign = useCallback(() => {
+    if (
+      design.layers.length > 0 &&
+      !window.confirm("Start a new design? Unsaved changes to the current design will be lost.")
+    ) {
+      return;
+    }
+    dispatch({ type: "newDesign" });
+    setStatus("Started a new design.");
+  }, [design.layers.length]);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -97,9 +108,11 @@ export default function EditorRoute() {
               dispatch({ type: "setColour", colour });
             }}
           />
-          <section aria-label="Garment side" className="flex flex-col gap-2">
+          {/* One compact row: a taller block pushes the artwork tray below the
+              fold on a 720px-high laptop viewport. */}
+          <section aria-label="Garment side" className="flex items-center gap-2">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Side</h2>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid flex-1 grid-cols-2 gap-2">
               {SIDES.map((side) => (
                 <button
                   key={side}
@@ -107,7 +120,7 @@ export default function EditorRoute() {
                   aria-pressed={side === currentSide}
                   onClick={() => dispatch({ type: "setSide", side })}
                   className={[
-                    "rounded-lg px-3 py-2 text-sm font-medium capitalize transition-colors",
+                    "rounded-lg px-3 py-1 text-sm font-medium capitalize transition-colors",
                     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                     side === currentSide
                       ? "border border-ink bg-ink text-paper shadow-sm"
@@ -135,13 +148,22 @@ export default function EditorRoute() {
                 className="rounded-lg border border-rule bg-canvas px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               />
             </label>
-            <button
-              type="button"
-              onClick={() => void onSave()}
-              className="self-start rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper shadow-sm transition-colors hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              Save design
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={onNewDesign}
+                className="rounded-lg border border-rule px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                New design
+              </button>
+              <button
+                type="button"
+                onClick={() => void onSave()}
+                className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper shadow-sm transition-colors hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Save design
+              </button>
+            </div>
             <DownloadButton design={design} side={currentSide} />
             <p role="status" aria-live="polite" className="text-xs font-medium text-accent">
               {status}
