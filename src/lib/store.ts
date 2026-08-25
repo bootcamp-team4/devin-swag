@@ -4,13 +4,18 @@
 
 import { parseDesign, type Design } from "./design";
 
+/**
+ * The persistence seam. Saved designs are async because they may live in the
+ * shared database behind `/api/designs`; the draft is not, because the
+ * in-progress design is always this browser's own `localStorage`.
+ */
 export interface DesignStore {
   /** Saved designs, newest `updatedAt` first. */
-  list(): Design[];
-  get(id: string): Design | null;
+  list(): Promise<Design[]>;
+  get(id: string): Promise<Design | null>;
   /** Upsert by id; stamps `updatedAt` and returns the stored design. */
-  save(design: Design): Design;
-  remove(id: string): void;
+  save(design: Design): Promise<Design>;
+  remove(id: string): Promise<void>;
   /** The in-progress design, autosaved separately from the named designs. */
   loadDraft(): Design | null;
   saveDraft(design: Design | null): void;
@@ -145,15 +150,15 @@ export function createLocalDesignStore(backing: StorageLike = defaultBacking()):
   };
 
   return {
-    list() {
+    async list() {
       return readDesigns().sort(byNewest);
     },
 
-    get(id) {
+    async get(id) {
       return readDesigns().find((design) => design.id === id) ?? null;
     },
 
-    save(design) {
+    async save(design) {
       const stored: Design = { ...design, updatedAt: new Date().toISOString() };
       const designs = readDesigns();
       const index = designs.findIndex((existing) => existing.id === stored.id);
@@ -164,7 +169,7 @@ export function createLocalDesignStore(backing: StorageLike = defaultBacking()):
       return stored;
     },
 
-    remove(id) {
+    async remove(id) {
       const designs = readDesigns();
       const kept = designs.filter((design) => design.id !== id);
       if (kept.length === designs.length) return;

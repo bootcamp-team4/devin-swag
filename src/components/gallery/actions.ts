@@ -5,12 +5,16 @@ import { createDesign, type Design } from "../../lib/design.ts";
 import type { DesignStore } from "../../lib/store.ts";
 
 /** Saved designs, newest first. Corrupt entries are already dropped by the store. */
-export function listDesigns(store: DesignStore): Design[] {
+export function listDesigns(store: DesignStore): Promise<Design[]> {
   return store.list();
 }
 
-export function renameDesign(store: DesignStore, id: string, name: string): Design | null {
-  const design = store.get(id);
+export async function renameDesign(
+  store: DesignStore,
+  id: string,
+  name: string,
+): Promise<Design | null> {
+  const design = await store.get(id);
   if (!design) return null;
   const trimmed = name.trim();
   if (trimmed.length === 0 || trimmed === design.name) return design;
@@ -29,13 +33,14 @@ export function copyName(name: string, existing: readonly string[]): string {
   return candidate;
 }
 
-export function duplicateDesign(store: DesignStore, id: string): Design | null {
-  const design = store.get(id);
+export async function duplicateDesign(store: DesignStore, id: string): Promise<Design | null> {
+  const design = await store.get(id);
   if (!design) return null;
+  const existing = await store.list();
   const copy = createDesign({
     name: copyName(
       design.name,
-      store.list().map((entry) => entry.name),
+      existing.map((entry) => entry.name),
     ),
     garment: design.garment,
     colour: design.colour,
@@ -44,8 +49,8 @@ export function duplicateDesign(store: DesignStore, id: string): Design | null {
   return store.save(copy);
 }
 
-export function deleteDesign(store: DesignStore, id: string): void {
-  store.remove(id);
+export function deleteDesign(store: DesignStore, id: string): Promise<void> {
+  return store.remove(id);
 }
 
 /**
@@ -55,8 +60,8 @@ export function deleteDesign(store: DesignStore, id: string): void {
  * owns. The draft keeps the design's id, so saving in the editor upserts the
  * same record rather than creating a second one.
  */
-export function openInEditor(store: DesignStore, id: string): Design | null {
-  const design = store.get(id);
+export async function openInEditor(store: DesignStore, id: string): Promise<Design | null> {
+  const design = await store.get(id);
   if (!design) return null;
   store.saveDraft(design);
   return design;
