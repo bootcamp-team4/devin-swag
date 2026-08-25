@@ -63,6 +63,17 @@ export default function EditorRoute() {
     }
   }, [design, store]);
 
+  const onNewDesign = useCallback(() => {
+    if (
+      design.layers.length > 0 &&
+      !window.confirm("Start a new design? Unsaved changes to the current design will be lost.")
+    ) {
+      return;
+    }
+    dispatch({ type: "newDesign" });
+    setStatus("Started a new design.");
+  }, [design.layers.length]);
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -135,13 +146,22 @@ export default function EditorRoute() {
                 className="rounded-sm border border-rule px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
               />
             </label>
-            <button
-              type="button"
-              onClick={() => void onSave()}
-              className="self-start rounded-sm border border-rule px-3 py-2 text-sm font-medium text-ink hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-            >
-              Save design
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={onNewDesign}
+                className="self-start rounded-sm border border-rule px-3 py-2 text-sm font-medium text-ink hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              >
+                New design
+              </button>
+              <button
+                type="button"
+                onClick={() => void onSave()}
+                className="self-start rounded-sm border border-rule px-3 py-2 text-sm font-medium text-ink hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              >
+                Save design
+              </button>
+            </div>
             <DownloadButton design={design} side={currentSide} />
             <p role="status" aria-live="polite" className="text-xs text-muted">
               {status}

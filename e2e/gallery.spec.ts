@@ -56,6 +56,11 @@ test("saved designs list newest first, survive a corrupt record, and open in the
     window.localStorage.getItem("cognition-merch-designer:draft"),
   );
   expect(draft).toContain("design-newer");
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "New design" }).click();
+  await expect(page.getByLabel("Design name")).toHaveValue("Untitled design");
+  await expect(page.locator("svg image[data-layer-id]")).toHaveCount(0);
 });
 
 test("rename, duplicate, and delete a design from the gallery", async ({ page }) => {
