@@ -15,14 +15,14 @@ test("keyboard-only navigation moves between the two routes", async ({ page }) =
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
 
-  const gallery = page.getByRole("link", { name: "My designs" });
+  const gallery = page.getByRole("link", { name: "Saved designs" });
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
   await expect(gallery).toBeFocused();
   await page.keyboard.press("Enter");
 
   await expect(page).toHaveURL(/\/designs$/);
-  await expect(page).toHaveTitle(/^My designs — /);
+  await expect(page).toHaveTitle(/^Saved designs — /);
   await expect(gallery).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("link", { name: "Editor" })).not.toHaveAttribute("aria-current", "page");
 });

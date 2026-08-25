@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 // The demonstration, end to end: pick a garment and colour, place a mark, name
-// and save the design, find it in My designs, and download the PNG mockup.
+// and save the design, find it in Saved designs, and download the PNG mockup.
 test("the golden path: design, save, find in the gallery, download", async ({ page }) => {
   await page.goto("/");
 
@@ -20,7 +20,7 @@ test("the golden path: design, save, find in the gallery, download", async ({ pa
   await page.getByRole("button", { name: "Save design" }).click();
   await expect(page.getByText(/Saved .*Demo hoodie/)).toBeVisible();
 
-  await page.getByRole("link", { name: "My designs" }).click();
+  await page.getByRole("link", { name: "Saved designs" }).click();
   const card = page.getByRole("listitem").filter({ hasText: "Demo hoodie" });
   await expect(card).toHaveCount(1);
   await expect(card).toContainText(/hoodie/i);
