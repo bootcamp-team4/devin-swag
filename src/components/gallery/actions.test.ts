@@ -15,17 +15,17 @@ function fakeStore(initial: Design[] = []): DesignStore & { draft: Design | null
   let designs = [...initial];
   let draft: Design | null = null;
   const store = {
-    list: () =>
+    list: async () =>
       [...designs].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)),
-    get: (id: string) => designs.find((design) => design.id === id) ?? null,
-    save: (design: Design) => {
+    get: async (id: string) => designs.find((design) => design.id === id) ?? null,
+    save: async (design: Design) => {
       const stored = { ...design, updatedAt: new Date(Date.now() + designs.length + 1).toISOString() };
       const index = designs.findIndex((existing) => existing.id === stored.id);
       if (index === -1) designs.push(stored);
       else designs[index] = stored;
       return stored;
     },
-    remove: (id: string) => {
+    remove: async (id: string) => {
       designs = designs.filter((design) => design.id !== id);
     },
     loadDraft: () => draft,
@@ -48,46 +48,46 @@ function seed(name: string, updatedAt: string): Design {
 }
 
 describe("gallery actions", () => {
-  it("lists saved designs newest first", () => {
+  it("lists saved designs newest first", async () => {
     const older = seed("Older", "2026-01-01T00:00:00.000Z");
     const newer = seed("Newer", "2026-06-01T00:00:00.000Z");
     const store = fakeStore([older, newer]);
 
-    expect(listDesigns(store).map((design) => design.name)).toEqual(["Newer", "Older"]);
+    expect((await listDesigns(store)).map((design) => design.name)).toEqual(["Newer", "Older"]);
   });
 
-  it("renames a design, trimming whitespace", () => {
+  it("renames a design, trimming whitespace", async () => {
     const design = seed("Old name", "2026-01-01T00:00:00.000Z");
     const store = fakeStore([design]);
 
-    const renamed = renameDesign(store, design.id, "  New name  ");
+    const renamed = await renameDesign(store, design.id, "  New name  ");
 
     expect(renamed?.name).toBe("New name");
-    expect(store.get(design.id)?.name).toBe("New name");
+    expect((await store.get(design.id))?.name).toBe("New name");
   });
 
-  it("ignores an empty rename and an unknown id", () => {
+  it("ignores an empty rename and an unknown id", async () => {
     const design = seed("Keep me", "2026-01-01T00:00:00.000Z");
     const store = fakeStore([design]);
 
-    expect(renameDesign(store, design.id, "   ")?.name).toBe("Keep me");
-    expect(renameDesign(store, "missing", "Whatever")).toBeNull();
-    expect(store.list()).toHaveLength(1);
+    expect((await renameDesign(store, design.id, "   "))?.name).toBe("Keep me");
+    expect(await renameDesign(store, "missing", "Whatever")).toBeNull();
+    expect(await store.list()).toHaveLength(1);
   });
 
-  it("duplicates a design as a new record with its own id and a distinct name", () => {
+  it("duplicates a design as a new record with its own id and a distinct name", async () => {
     const design = seed("Tee", "2026-01-01T00:00:00.000Z");
     const store = fakeStore([design]);
 
-    const copy = duplicateDesign(store, design.id);
+    const copy = await duplicateDesign(store, design.id);
 
     expect(copy).not.toBeNull();
     expect(copy?.id).not.toBe(design.id);
     expect(copy?.name).toBe("Tee (copy)");
     expect(copy?.layers).toEqual(design.layers);
-    expect(store.list()).toHaveLength(2);
+    expect(await store.list()).toHaveLength(2);
 
-    expect(duplicateDesign(store, design.id)?.name).toBe("Tee (copy 2)");
+    expect((await duplicateDesign(store, design.id))?.name).toBe("Tee (copy 2)");
   });
 
   it("numbers repeated copies without stacking suffixes", () => {
@@ -96,33 +96,33 @@ describe("gallery actions", () => {
     expect(copyName("Tee (copy 2)", ["Tee (copy)", "Tee (copy 2)"])).toBe("Tee (copy 3)");
   });
 
-  it("deletes a design and leaves the others alone", () => {
+  it("deletes a design and leaves the others alone", async () => {
     const keep = seed("Keep", "2026-01-01T00:00:00.000Z");
     const drop = seed("Drop", "2026-02-01T00:00:00.000Z");
     const store = fakeStore([keep, drop]);
 
-    deleteDesign(store, drop.id);
+    await deleteDesign(store, drop.id);
 
-    expect(store.list().map((design) => design.name)).toEqual(["Keep"]);
+    expect((await store.list()).map((design) => design.name)).toEqual(["Keep"]);
   });
 
-  it("opens a design by handing it to the editor's draft slot, id intact", () => {
+  it("opens a design by handing it to the editor's draft slot, id intact", async () => {
     const design = seed("Tee", "2026-01-01T00:00:00.000Z");
     const store = fakeStore([design]);
 
-    const opened = openInEditor(store, design.id);
+    const opened = await openInEditor(store, design.id);
 
     expect(opened?.id).toBe(design.id);
     expect(store.loadDraft()?.id).toBe(design.id);
-    expect(openInEditor(store, "missing")).toBeNull();
+    expect(await openInEditor(store, "missing")).toBeNull();
   });
 
-  it("a corrupt record is dropped rather than taking out the list", () => {
+  it("a corrupt record is dropped rather than taking out the list", async () => {
     const good = seed("Good", "2026-01-01T00:00:00.000Z");
     const parsed = [{ id: "bad", garment: "sock" }, good].map(parseDesign);
     const store = fakeStore(parsed.filter((design): design is Design => design !== null));
 
     expect(parsed[0]).toBeNull();
-    expect(listDesigns(store).map((design) => design.name)).toEqual(["Good"]);
+    expect((await listDesigns(store)).map((design) => design.name)).toEqual(["Good"]);
   });
 });
