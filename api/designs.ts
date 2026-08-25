@@ -10,6 +10,7 @@
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Pool } from "pg";
+import { parseDesign } from "../src/lib/design";
 
 const MAX_BODY_BYTES = 64 * 1024;
 const CONNECT_TIMEOUT_MS = 5_000;
@@ -94,31 +95,18 @@ function errorCode(error: unknown): string {
   return typeof code === "string" ? code : "unknown";
 }
 
-/** Server-side shape check. The client re-validates with `parseDesign`. */
-function isDesignish(value: unknown): value is { id: string } {
-  if (typeof value !== "object" || value === null) return false;
-  const raw = value as Record<string, unknown>;
-  return (
-    typeof raw.id === "string" &&
-    raw.id.length > 0 &&
-    raw.id.length <= 128 &&
-    typeof raw.garment === "string" &&
-    typeof raw.colour === "string" &&
-    Array.isArray(raw.layers)
-  );
-}
-
 // Vercel's Node runtime calls this with (req, res) and waits for `res.end()`.
 // A handler that took a `Request` and returned a `Response` was accepted at
 // build time and then timed out every invocation at 300s, so the signature is
 // the contract here: always end the response.
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const db = await ready();
+    // The database is reached only once the request is known to be valid, so a
+    // malformed body is a 400 rather than a 503 when there is no database.
     const url = new URL(req.url ?? "/", "http://localhost");
 
     if (req.method === "GET") {
-      const result = await db.query<{ design: unknown }>(
+      const result = await (await ready()).query<{ design: unknown }>(
         "SELECT design FROM designs ORDER BY updated_at DESC",
       );
       json(res, { designs: result.rows.map((row) => row.design) });
@@ -138,13 +126,16 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         json(res, { error: "Body is not JSON" }, 400);
         return;
       }
-      if (!isDesignish(body)) {
+      // The gallery's own parser, so the API cannot accept a design the UI
+      // will silently refuse to render (an unknown garment, say).
+      const parsed = parseDesign(body);
+      if (!parsed || parsed.id.length > 128) {
         json(res, { error: "Body is not a design" }, 400);
         return;
       }
 
-      const design = { ...body, updatedAt: new Date().toISOString() };
-      await db.query(
+      const design = { ...parsed, updatedAt: new Date().toISOString() };
+      await (await ready()).query(
         `INSERT INTO designs (id, design, updated_at) VALUES ($1, $2, now())
          ON CONFLICT (id) DO UPDATE SET design = EXCLUDED.design, updated_at = now()`,
         [design.id, JSON.stringify(design)],
@@ -159,7 +150,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         json(res, { error: "Missing id" }, 400);
         return;
       }
-      await db.query("DELETE FROM designs WHERE id = $1", [id]);
+      await (await ready()).query("DELETE FROM designs WHERE id = $1", [id]);
       res.statusCode = 204;
       res.end();
       return;

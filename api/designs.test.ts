@@ -7,12 +7,14 @@ import handler from "./designs";
  * handler with the web `Request`/`Response` signature deployed fine and then
  * timed out every request. These exercise the signature, not the database.
  */
-function fakeReq(method: string, url = "/api/designs"): IncomingMessage {
+function fakeReq(method: string, body?: unknown, url = "/api/designs"): IncomingMessage {
   return {
     method,
     url,
     headers: {},
-    async *[Symbol.asyncIterator]() {},
+    async *[Symbol.asyncIterator]() {
+      if (body !== undefined) yield Buffer.from(JSON.stringify(body));
+    },
   } as unknown as IncomingMessage;
 }
 
@@ -69,5 +71,27 @@ describe("designs api", () => {
       await handler(fakeReq(method), res as unknown as ServerResponse);
       expect(res.ended, method).toBe(true);
     }
+  });
+
+  it("rejects a design the gallery could not render", async () => {
+    // "tee" is not one of GARMENTS, so parseDesign drops it and the design
+    // would sit in the shared table invisible to every visitor.
+    restore = withoutDatabase();
+    const res = fakeRes();
+
+    await handler(
+      fakeReq("PUT", {
+        id: "unrenderable",
+        name: "Nope",
+        garment: "tee",
+        colour: "black",
+        layers: [],
+      }),
+      res as unknown as ServerResponse,
+    );
+
+    // 400, not the 503 an unconfigured database would give: it never got there.
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body ?? "{}")).toEqual({ error: "Body is not a design" });
   });
 });
