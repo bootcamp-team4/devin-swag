@@ -20,21 +20,11 @@ function designsApi(): Plugin {
         if (!req.url?.startsWith(API_PATH)) return next();
         try {
           const { default: handler } = (await server.ssrLoadModule("/api/designs.ts")) as {
-            default: (request: Request) => Promise<Response>;
+            default: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
           };
-          const chunks: Buffer[] = [];
-          for await (const chunk of req) chunks.push(chunk as Buffer);
-          const body = chunks.length > 0 ? Buffer.concat(chunks) : undefined;
-          const response = await handler(
-            new Request(new URL(req.url, "http://localhost"), {
-              method: req.method,
-              headers: new Headers(req.headers as Record<string, string>),
-              body,
-            }),
-          );
-          res.statusCode = response.status;
-          response.headers.forEach((value, key) => res.setHeader(key, value));
-          res.end(Buffer.from(await response.arrayBuffer()));
+          // Vercel's Node runtime hands the function the raw req/res, so dev
+          // does the same and nothing about the request is re-encoded here.
+          await handler(req, res);
         } catch (error) {
           next(error);
         }
@@ -55,7 +45,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss(), designsApi()],
     test: {
       environment: "node",
-      include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+      include: ["src/**/*.test.ts", "src/**/*.test.tsx", "api/**/*.test.ts"],
       passWithNoTests: true,
     },
   };
