@@ -73,6 +73,13 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+/** A pg/libpq error code if there is one, so a 502 is diagnosable from outside. */
+function errorCode(error: unknown): string {
+  if (typeof error !== "object" || error === null) return "unknown";
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" ? code : "unknown";
+}
+
 /** Server-side shape check. The client re-validates with `parseDesign`. */
 function isDesignish(value: unknown): value is { id: string } {
   if (typeof value !== "object" || value === null) return false;
@@ -134,15 +141,8 @@ export default async function handler(request: Request): Promise<Response> {
       return json({ error: "Shared gallery is not configured" }, 503);
     }
     console.error("designs api failed", error);
-    // The detail is the database's own message (host, timeout, permissions) and
-    // never the connection string; without it a misconfigured deployment is
-    // only diagnosable from the platform's logs.
-    return json(
-      {
-        error: "Shared gallery is unavailable",
-        detail: error instanceof Error ? error.message : String(error),
-      },
-      502,
-    );
+    // The code alone — ETIMEDOUT, ENOTFOUND, 28P01 — says which misconfiguration
+    // this is without the message, which can name the host and the role.
+    return json({ error: "Shared gallery is unavailable", code: errorCode(error) }, 502);
   }
 }
