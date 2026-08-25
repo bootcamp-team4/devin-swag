@@ -63,9 +63,11 @@ function Option({
   return (
     <label
       className={[
-        "flex cursor-pointer flex-col items-center gap-1 rounded-sm border p-2 text-xs",
-        "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink",
-        checked ? "border-ink font-medium" : "border-rule text-muted hover:border-muted",
+        "flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border p-2.5 text-xs transition-all",
+        "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent",
+        checked
+          ? "border-accent bg-accent-subtle font-medium text-ink shadow-sm"
+          : "border-rule bg-paper text-muted hover:border-muted hover:bg-canvas",
       ].join(" ")}
     >
       <input
@@ -86,9 +88,11 @@ export default function GarmentPicker({ garment, colour, onChange }: GarmentPick
   const groupId = useId();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-2 p-0 text-sm font-medium">Garment</legend>
+        <legend className="mb-2 p-0 text-xs font-semibold uppercase tracking-wide text-muted">
+          Garment
+        </legend>
         <div className="grid grid-cols-3 gap-2">
           {GARMENTS.map((option) => (
             <Option
@@ -105,7 +109,9 @@ export default function GarmentPicker({ garment, colour, onChange }: GarmentPick
       </fieldset>
 
       <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-2 p-0 text-sm font-medium">Colour</legend>
+        <legend className="mb-2 p-0 text-xs font-semibold uppercase tracking-wide text-muted">
+          Colour
+        </legend>
         <div className="grid grid-cols-3 gap-2">
           {COLOURWAYS.map((option) => (
             <Option

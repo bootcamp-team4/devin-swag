@@ -16,7 +16,7 @@ function formatUpdatedAt(value: string): string {
 }
 
 const BUTTON =
-  "rounded-sm border border-rule px-2 py-1 text-sm hover:bg-rule/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+  "rounded-lg border border-rule bg-paper px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-canvas hover:border-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 export type DesignCardProps = {
   design: Design;
@@ -45,8 +45,8 @@ export default function DesignCard({
   const scene = renderDesign(design, THUMBNAIL_SIZE, previewSide);
 
   return (
-    <li className="flex flex-col gap-3 rounded-sm border border-rule p-3">
-      <div className="rounded-sm bg-paper">
+    <li className="flex flex-col gap-4 rounded-2xl border border-rule bg-paper p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="rounded-xl bg-canvas p-2">
         {toReactSvg(scene, { className: "w-full h-auto block" })}
       </div>
 
@@ -59,7 +59,7 @@ export default function DesignCard({
             setMode("idle");
           }}
         >
-          <label className="text-sm font-medium" htmlFor={`name-${design.id}`}>
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted" htmlFor={`name-${design.id}`}>
             Design name
           </label>
           <input
@@ -73,7 +73,7 @@ export default function DesignCard({
                 setMode("idle");
               }
             }}
-            className="rounded-sm border border-rule bg-paper px-2 py-1 text-sm"
+            className="rounded-lg border border-rule bg-canvas px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           />
           <div className="flex gap-2">
             <button type="submit" className={BUTTON}>
@@ -93,8 +93,8 @@ export default function DesignCard({
         </form>
       ) : (
         <div>
-          <h2 className="text-sm font-medium">{design.name}</h2>
-          <p className="text-xs text-muted">
+          <h2 className="text-base font-semibold">{design.name}</h2>
+          <p className="mt-0.5 text-xs text-muted">
             {GARMENT_LABELS[design.garment]} · {design.colour} · updated{" "}
             {formatUpdatedAt(design.updatedAt)}
           </p>
@@ -102,18 +102,19 @@ export default function DesignCard({
       )}
 
       {mode === "confirming-delete" ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm">Delete “{design.name}”? This cannot be undone.</p>
+        <div className="flex flex-col gap-2 rounded-xl bg-red-50 p-3">
+          <p className="text-sm font-medium text-red-800">Delete “{design.name}”?</p>
+          <p className="text-xs text-red-700">This cannot be undone.</p>
           <div className="flex gap-2">
             <button
               type="button"
-              className={`${BUTTON} border-accent text-accent`}
+              className="rounded-lg border border-red-200 bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               onClick={() => onDelete(design)}
             >
               Confirm delete
             </button>
             <button type="button" className={BUTTON} onClick={() => setMode("idle")}>
-              Cancel delete
+              Cancel
             </button>
           </div>
         </div>
@@ -134,7 +135,7 @@ export default function DesignCard({
             </button>
             <button
               type="button"
-              className={BUTTON}
+              className="rounded-lg border border-rule bg-paper px-2.5 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:border-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               onClick={() => setMode("confirming-delete")}
             >
               Delete
