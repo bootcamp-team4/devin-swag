@@ -8,7 +8,7 @@ const SCALE_STEP = 0.05;
 const ROTATE_STEP = 15;
 
 const BUTTON =
-  "rounded-sm border border-rule px-2 py-1 text-xs hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+  "rounded-lg border border-rule bg-paper px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-canvas hover:border-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 type Props = { state: EditorState; dispatch: Dispatch<DesignAction> };
 
@@ -19,7 +19,7 @@ export default function LayerControls({ state, dispatch }: Props) {
 
   if (!selected) {
     return (
-      <p className="text-xs text-muted">
+      <p className="rounded-lg border border-dashed border-rule bg-canvas p-3 text-xs text-muted">
         Select artwork on the garment to move, scale, or rotate it.
       </p>
     );
@@ -29,11 +29,13 @@ export default function LayerControls({ state, dispatch }: Props) {
   const id = selected.id;
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm font-medium">{label}</p>
-      <p className="text-xs text-muted">
-        {Math.round(selected.scale * 100)}% · {Math.round(selected.rotation)}°
-      </p>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium">{label}</p>
+        <span className="inline-flex items-center rounded-md bg-canvas px-2 py-0.5 text-xs font-medium text-muted">
+          {Math.round(selected.scale * 100)}% · {Math.round(selected.rotation)}°
+        </span>
+      </div>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -90,7 +92,7 @@ export default function LayerControls({ state, dispatch }: Props) {
         </button>
         <button
           type="button"
-          className={BUTTON}
+          className="rounded-lg border border-rule bg-paper px-2.5 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:border-red-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           onClick={() => dispatch({ type: "deleteLayer", id })}
         >
           Delete

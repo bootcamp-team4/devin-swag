@@ -153,7 +153,7 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
     return {
       r: HANDLE_RADIUS,
       fill: "#ffffff",
-      stroke: "#2563eb",
+      stroke: "var(--color-accent)",
       strokeWidth: 2,
       style: { cursor: kind === "scale" ? "nwse-resize" : "grab", touchAction: "none" as const },
       onPointerDown: (event: ReactPointerEvent<SVGGeometryElement>) =>
@@ -244,7 +244,7 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
               y1={box.cy - box.height / 2}
               x2={box.cx}
               y2={box.cy - box.height / 2 - ROTATE_ARM}
-              stroke="#2563eb"
+              stroke="var(--color-accent)"
               strokeWidth={2}
               style={{ pointerEvents: "none" }}
             />
@@ -283,7 +283,7 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
             height={box.height}
             transform={selected.rotation ? `rotate(${selected.rotation} ${box.cx} ${box.cy})` : undefined}
             fill="none"
-            stroke="#2563eb"
+            stroke="var(--color-accent)"
             strokeWidth={2}
             strokeDasharray="6 4"
           />

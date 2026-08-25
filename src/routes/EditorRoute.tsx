@@ -58,19 +58,19 @@ export default function EditorRoute() {
   }, [design, store]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Editor</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="text-2xl font-semibold tracking-tight">Editor</h1>
+        <p className="mt-1 max-w-2xl text-base text-muted">
           Drag artwork onto the garment, then drag it to move it, or use its corner handles to
           scale and rotate. Everything is also available from the keyboard and the buttons on the
           right.
         </p>
       </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
+      <div className="grid grid-cols-[minmax(0,1fr)_22rem] gap-6 items-start">
         <section
           aria-label="Design canvas"
-          className="min-h-[32rem] rounded-sm border border-rule flex items-center justify-center"
+          className="flex min-h-[32rem] items-center justify-center rounded-2xl border border-rule bg-paper p-6 shadow-sm"
         >
           <EditorCanvas
             state={state}
@@ -81,7 +81,7 @@ export default function EditorRoute() {
         </section>
         <aside
           aria-label="Design controls"
-          className="min-h-[32rem] rounded-sm border border-rule p-4 text-sm flex flex-col gap-6"
+          className="flex min-h-[32rem] flex-col gap-6 rounded-2xl border border-rule bg-paper p-5 text-sm shadow-sm"
         >
           <GarmentPicker
             garment={design.garment}
@@ -92,7 +92,7 @@ export default function EditorRoute() {
             }}
           />
           <section aria-label="Garment side" className="flex flex-col gap-2">
-            <h2 className="text-sm font-medium">Side</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Side</h2>
             <div className="grid grid-cols-2 gap-2">
               {SIDES.map((side) => (
                 <button
@@ -101,11 +101,11 @@ export default function EditorRoute() {
                   aria-pressed={side === currentSide}
                   onClick={() => dispatch({ type: "setSide", side })}
                   className={[
-                    "rounded-sm border px-3 py-2 text-sm font-medium capitalize",
-                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink",
+                    "rounded-lg px-3 py-2 text-sm font-medium capitalize transition-colors",
+                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                     side === currentSide
-                      ? "border-ink bg-ink text-paper"
-                      : "border-rule text-ink hover:border-ink",
+                      ? "border border-ink bg-ink text-paper shadow-sm"
+                      : "border border-rule bg-canvas text-ink hover:border-muted",
                   ].join(" ")}
                 >
                   {side}
@@ -117,25 +117,27 @@ export default function EditorRoute() {
           <section aria-label="Selected artwork">
             <LayerControls state={state} dispatch={dispatch} />
           </section>
-          <div className="flex flex-col gap-2">
-            <label className="flex flex-col gap-1">
-              <span className="font-medium text-ink">Design name</span>
+          <div className="mt-auto flex flex-col gap-3 border-t border-rule pt-5">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Design name
+              </span>
               <input
                 type="text"
                 value={design.name}
                 onChange={(event) => dispatch({ type: "setName", name: event.target.value })}
-                className="rounded-sm border border-rule px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                className="rounded-lg border border-rule bg-canvas px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               />
             </label>
             <button
               type="button"
               onClick={onSave}
-              className="self-start rounded-sm border border-rule px-3 py-2 text-sm font-medium text-ink hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="self-start rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper shadow-sm transition-colors hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               Save design
             </button>
             <DownloadButton design={design} side={currentSide} />
-            <p role="status" aria-live="polite" className="text-xs text-muted">
+            <p role="status" aria-live="polite" className="text-xs font-medium text-accent">
               {status}
             </p>
           </div>

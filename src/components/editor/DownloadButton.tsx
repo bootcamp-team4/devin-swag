@@ -31,12 +31,12 @@ export default function DownloadButton({ design, side, className }: DownloadButt
         type="button"
         onClick={onClick}
         disabled={busy}
-        className="rounded-sm border border-rule px-3 py-2 text-sm font-medium text-ink hover:border-ink disabled:cursor-progress disabled:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="rounded-lg border border-rule bg-paper px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-canvas hover:border-muted disabled:cursor-progress disabled:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         {busy ? "Preparing PNG…" : "Download PNG"}
       </button>
-      <p className="mt-1 text-xs text-muted">2000 × 2000 mockup image</p>
-      <p role="status" aria-live="polite" className="mt-1 text-xs text-ink">
+      <p className="mt-1.5 text-xs text-muted">2000 × 2000 mockup image</p>
+      <p role="status" aria-live="polite" className="mt-1 text-xs text-red-600">
         {error}
       </p>
     </div>

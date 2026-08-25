@@ -18,10 +18,10 @@ function Tile({ design, outline, caption }: { design: Design; outline: boolean; 
   const scene = renderDesign(design, TILE);
   return (
     <figure className="m-0">
-      <div className="rounded border border-rule bg-paper p-2">
+      <div className="rounded-xl border border-rule bg-paper p-3 shadow-sm">
         {toReactSvg(scene, { showPrintableArea: outline, className: "w-full h-auto block" })}
       </div>
-      <figcaption className="mt-1 text-xs text-muted">{caption}</figcaption>
+      <figcaption className="mt-1.5 text-xs text-muted">{caption}</figcaption>
     </figure>
   );
 }
@@ -91,7 +91,7 @@ function PickerDemo({ start }: { start: GarmentSelection }) {
   }
 
   return (
-    <div className="flex items-start gap-4 rounded border border-rule p-3">
+    <div className="flex items-start gap-4 rounded-2xl border border-rule bg-paper p-4 shadow-sm">
       <div className="w-72">
         <GarmentPicker garment={design.garment} colour={design.colour} onChange={select} />
       </div>
@@ -103,20 +103,20 @@ function PickerDemo({ start }: { start: GarmentSelection }) {
 export default function ContactSheetRoute() {
   return (
     <section>
-      <p className="mb-4 inline-block rounded border border-accent px-2 py-1 text-xs font-semibold uppercase tracking-wide text-accent">
+      <p className="mb-4 inline-block rounded-full border border-accent bg-accent-subtle px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent">
         Dev only — renderer contact sheet, not part of the product UI
       </p>
-      <h2 className="text-base font-medium">Blanks, with the printable area outlined</h2>
+      <h2 className="text-base font-semibold">Blanks, with the printable area outlined</h2>
       <p className="mb-4 max-w-2xl text-sm text-muted">
         Gina approves these rectangles by eye. Layer coordinates are fractions of them, so moving a
         rectangle later moves the artwork of every saved design.
       </p>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
         {blanks.map((blank) => (
           <Tile key={blank.key} design={blank.design} caption={blank.caption} outline />
         ))}
       </div>
-      <h2 className="mt-8 text-base font-medium">Garment and colour picker</h2>
+      <h2 className="mt-8 text-base font-semibold">Garment and colour picker</h2>
       <p className="mb-4 max-w-2xl text-sm text-muted">
         Switching garment re-fits the layers: artwork too large for the new printable area is
         scaled down instead of being cropped or dropped.
@@ -126,8 +126,8 @@ export default function ContactSheetRoute() {
         <PickerDemo start={{ garment: "cap", colour: "white" }} />
       </div>
 
-      <h2 className="mt-8 text-base font-medium">Layered examples</h2>
-      <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+      <h2 className="mt-8 text-base font-semibold">Layered examples</h2>
+      <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
         {examples.map((example) => (
           <Tile
             key={example.key}

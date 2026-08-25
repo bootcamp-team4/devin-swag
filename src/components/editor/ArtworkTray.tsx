@@ -65,7 +65,7 @@ export default function ArtworkTray({ state, dispatch, canvasRef }: Props) {
 
   return (
     <section aria-label="Artwork" className="flex flex-col gap-2">
-      <h2 className="text-sm font-medium">Artwork</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Artwork</h2>
       <p className="text-xs text-muted">
         Drag a mark onto the garment, or press it to place it in the middle.
       </p>
@@ -75,7 +75,7 @@ export default function ArtworkTray({ state, dispatch, canvasRef }: Props) {
             <button
               type="button"
               data-mark={markId}
-              className="flex w-full items-center gap-3 rounded-sm border border-rule bg-paper px-3 py-2 text-left text-sm hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="flex w-full items-center gap-3 rounded-xl border border-rule bg-paper px-3 py-2.5 text-left text-sm transition-all hover:border-accent hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               style={{ touchAction: "none", cursor: "grab" }}
               onPointerDown={onPointerDown}
               onPointerUp={(event) => onPointerUp(event, markId)}
@@ -84,10 +84,10 @@ export default function ArtworkTray({ state, dispatch, canvasRef }: Props) {
               <img
                 src={previewSrc(markId)}
                 alt=""
-                className="h-8 w-16 object-contain"
+                className="h-9 w-16 object-contain"
                 draggable={false}
               />
-              <span>{MARK_LABELS[markId]}</span>
+              <span className="font-medium">{MARK_LABELS[markId]}</span>
             </button>
           </li>
         ))}

@@ -34,10 +34,10 @@ export default function GalleryRoute({ store }: { store?: DesignStore }) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">My designs</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="text-2xl font-semibold tracking-tight">My designs</h1>
+        <p className="mt-1 max-w-2xl text-base text-muted">
           Designs are stored in this browser only — clearing site data removes them. Download a PNG
           to keep a copy.
         </p>
@@ -49,20 +49,20 @@ export default function GalleryRoute({ store }: { store?: DesignStore }) {
             Loading your designs…
           </p>
         ) : designs.length === 0 ? (
-          <div className="rounded-sm border border-rule p-6">
-            <h2 className="text-base font-medium">No designs yet</h2>
-            <p className="mt-1 max-w-prose text-sm text-muted">
+          <div className="rounded-2xl border border-rule bg-paper p-8 text-center shadow-sm">
+            <h2 className="text-base font-semibold">No designs yet</h2>
+            <p className="mx-auto mt-1 max-w-prose text-sm text-muted">
               Pick a garment in the editor, drag a mark onto it, and save it — it will show up here.
             </p>
             <Link
               to="/"
-              className="mt-3 inline-block rounded-sm border border-rule px-3 py-1 text-sm no-underline hover:bg-rule/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="mt-4 inline-block rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper no-underline shadow-sm transition-colors hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               Start your first design
             </Link>
           </div>
         ) : (
-          <ul className="grid list-none grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4 p-0">
+          <ul className="grid list-none grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-5 p-0">
             {designs.map((design) => (
               <DesignCard
                 key={design.id}
