@@ -11,6 +11,8 @@
 import { Pool } from "pg";
 
 const MAX_BODY_BYTES = 64 * 1024;
+const CONNECT_TIMEOUT_MS = 5_000;
+const QUERY_TIMEOUT_MS = 8_000;
 
 let pool: Pool | null = null;
 let schemaReady: Promise<void> | null = null;
@@ -20,7 +22,15 @@ function getPool(): Pool {
   if (!connectionString) throw new NoDatabaseError();
   // Reused across invocations on a warm function; one connection is plenty for
   // a gallery this size and keeps us inside Neon's free-tier limits.
-  pool ??= new Pool({ connectionString, max: 1 });
+  pool ??= new Pool({
+    connectionString,
+    max: 1,
+    // Without these a database that accepts the socket but never answers hangs
+    // the request until the platform kills it, and the gallery spins forever.
+    connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
+    query_timeout: QUERY_TIMEOUT_MS,
+    statement_timeout: QUERY_TIMEOUT_MS,
+  });
   return pool;
 }
 
@@ -124,6 +134,15 @@ export default async function handler(request: Request): Promise<Response> {
       return json({ error: "Shared gallery is not configured" }, 503);
     }
     console.error("designs api failed", error);
-    return json({ error: "Shared gallery is unavailable" }, 502);
+    // The detail is the database's own message (host, timeout, permissions) and
+    // never the connection string; without it a misconfigured deployment is
+    // only diagnosable from the platform's logs.
+    return json(
+      {
+        error: "Shared gallery is unavailable",
+        detail: error instanceof Error ? error.message : String(error),
+      },
+      502,
+    );
   }
 }

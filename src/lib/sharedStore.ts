@@ -18,11 +18,18 @@ export interface SharedDesignStore extends DesignStore {
 /** Other people's designs only arrive by asking; this is how often we ask. */
 export const POLL_INTERVAL_MS = 15_000;
 
+/**
+ * A request that never settles would leave the gallery loading forever, so a
+ * slow API is treated as an absent one and the browser's own designs are shown.
+ */
+export const REQUEST_TIMEOUT_MS = 10_000;
+
 type Options = {
   endpoint?: string;
   fetchImpl?: typeof fetch;
   local?: DesignStore;
   pollIntervalMs?: number;
+  timeoutMs?: number;
 };
 
 function parseAll(value: unknown): Design[] {
@@ -37,11 +44,18 @@ function parseAll(value: unknown): Design[] {
   return designs;
 }
 
+/** `AbortSignal.timeout` where it exists; older browsers just get no timeout. */
+function timeoutSignal(ms: number): AbortSignal | undefined {
+  if (ms <= 0 || typeof AbortSignal === "undefined") return undefined;
+  return typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(ms) : undefined;
+}
+
 export function createSharedDesignStore(options: Options = {}): SharedDesignStore {
   const endpoint = options.endpoint ?? DESIGNS_ENDPOINT;
   const local = options.local ?? createLocalDesignStore();
   const pollIntervalMs = options.pollIntervalMs ?? POLL_INTERVAL_MS;
   const doFetch = options.fetchImpl ?? (typeof fetch === "function" ? fetch : undefined);
+  const timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
 
   const listeners = new Set<() => void>();
   let mode: StoreMode = doFetch ? "shared" : "local";
@@ -61,6 +75,7 @@ export function createSharedDesignStore(options: Options = {}): SharedDesignStor
     const response = await doFetch(`${endpoint}${init.query ?? ""}`, {
       ...init,
       headers: init.body ? { "content-type": "application/json" } : undefined,
+      signal: timeoutSignal(timeoutMs),
     });
     if (!response.ok) throw new Error(`${endpoint} responded ${response.status}`);
     if (response.status === 204) return null;
