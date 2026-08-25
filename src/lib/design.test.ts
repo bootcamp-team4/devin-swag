@@ -18,6 +18,7 @@ import {
 const layer = (overrides: Partial<Layer> = {}): Layer => ({
   id: "layer-1",
   markId: "cognition",
+  side: "front",
   x: 0.5,
   y: 0.5,
   scale: 0.4,

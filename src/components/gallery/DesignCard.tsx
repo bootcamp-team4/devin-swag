@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { GARMENT_LABELS, type Design } from "../../lib/design.ts";
+import { GARMENT_LABELS, type Design, type Side } from "../../lib/design.ts";
 import { renderDesign, toReactSvg } from "../../lib/render.ts";
 
 /** Thumbnails come from the same renderer as the editor and the export. */
@@ -41,7 +41,8 @@ export default function DesignCard({
     if (mode === "renaming") inputRef.current?.focus();
   }, [mode]);
 
-  const scene = renderDesign(design, THUMBNAIL_SIZE);
+  const previewSide: Side = design.layers.some((layer) => layer.side === "front") ? "front" : "back";
+  const scene = renderDesign(design, THUMBNAIL_SIZE, previewSide);
 
   return (
     <li className="flex flex-col gap-3 rounded-sm border border-rule p-3">

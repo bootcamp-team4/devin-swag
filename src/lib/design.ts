@@ -3,14 +3,17 @@
 export const GARMENTS = ["tshirt", "hoodie", "cap"] as const;
 export const COLOURWAYS = ["black", "white"] as const;
 export const MARK_IDS = ["cognition", "devin", "otter"] as const;
+export const SIDES = ["front", "back"] as const;
 
 export type Garment = (typeof GARMENTS)[number];
 export type Colourway = (typeof COLOURWAYS)[number];
 export type MarkId = (typeof MARK_IDS)[number];
+export type Side = (typeof SIDES)[number];
 
 export type Layer = {
   id: string;
   markId: MarkId;
+  side: Side;
   /** Centre of the artwork, as a fraction of the printable area. Never pixels. */
   x: number;
   y: number;
@@ -149,13 +152,19 @@ export function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${idCounter.toString(36)}`;
 }
 
-export function createLayer(markId: MarkId, garment: Garment, at?: { x: number; y: number }): Layer {
+export function createLayer(
+  markId: MarkId,
+  garment: Garment,
+  at?: { x: number; y: number },
+  side: Side = "front",
+): Layer {
   const layer: Layer = {
     id: newId("layer"),
     markId,
+    side,
     x: at?.x ?? 0.5,
     y: at?.y ?? 0.5,
-    scale: Math.min(DEFAULT_SCALE, maxScaleFor({ scale: DEFAULT_SCALE, markId, rotation: 0 } as Layer, garment)),
+    scale: Math.min(DEFAULT_SCALE, maxScaleFor({ scale: DEFAULT_SCALE, markId, side, rotation: 0 } as Layer, garment)),
     rotation: 0,
   };
   return clampLayer(layer, garment);
@@ -195,6 +204,7 @@ function parseLayer(value: unknown): Layer | null {
   return {
     id: typeof raw.id === "string" && raw.id.length > 0 ? raw.id : newId("layer"),
     markId: raw.markId,
+    side: isOneOf(SIDES, raw.side) ? raw.side : "front",
     x: raw.x,
     y: raw.y,
     scale: raw.scale,

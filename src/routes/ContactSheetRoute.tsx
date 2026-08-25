@@ -40,7 +40,7 @@ const examples = [
     design: createDesign({
       garment: "tshirt",
       colour: "black",
-      layers: [{ id: "e1", markId: "devin", x: 0.5, y: 0.3, scale: 0.9, rotation: 0 }],
+      layers: [{ id: "e1", markId: "devin", side: "front", x: 0.5, y: 0.3, scale: 0.9, rotation: 0 }],
     }),
     caption: "T-shirt · black · Devin logo, chest",
   },
@@ -49,7 +49,7 @@ const examples = [
     design: createDesign({
       garment: "hoodie",
       colour: "white",
-      layers: [{ id: "e2", markId: "otter", x: 0.5, y: 0.45, scale: 0.7, rotation: 0 }],
+      layers: [{ id: "e2", markId: "otter", side: "front", x: 0.5, y: 0.45, scale: 0.7, rotation: 0 }],
     }),
     caption: "Hoodie · white · otter mascot",
   },
@@ -58,7 +58,7 @@ const examples = [
     design: createDesign({
       garment: "cap",
       colour: "black",
-      layers: [{ id: "e3", markId: "cognition", x: 0.5, y: 0.5, scale: 0.55, rotation: 0 }],
+      layers: [{ id: "e3", markId: "cognition", side: "front", x: 0.5, y: 0.5, scale: 0.55, rotation: 0 }],
     }),
     caption: "Cap · black · Cognition logo",
   },
@@ -68,8 +68,8 @@ const examples = [
       garment: "tshirt",
       colour: "white",
       layers: [
-        { id: "e4", markId: "otter", x: 0.5, y: 0.4, scale: 0.6, rotation: 0 },
-        { id: "e5", markId: "devin", x: 0.5, y: 0.8, scale: 0.8, rotation: 8 },
+        { id: "e4", markId: "otter", side: "front", x: 0.5, y: 0.4, scale: 0.6, rotation: 0 },
+        { id: "e5", markId: "devin", side: "front", x: 0.5, y: 0.8, scale: 0.8, rotation: 8 },
       ],
     }),
     caption: "T-shirt · white · two layers, second rotated 8°",
@@ -77,8 +77,8 @@ const examples = [
 ];
 
 const DEMO_LAYERS = [
-  { id: "d1", markId: "otter", x: 0.5, y: 0.45, scale: 1, rotation: 0 },
-  { id: "d2", markId: "devin", x: 0.5, y: 0.85, scale: 0.9, rotation: 6 },
+  { id: "d1", markId: "otter", side: "front", x: 0.5, y: 0.45, scale: 1, rotation: 0 },
+  { id: "d2", markId: "devin", side: "front", x: 0.5, y: 0.85, scale: 0.9, rotation: 6 },
 ] as const;
 
 function PickerDemo({ start }: { start: GarmentSelection }) {

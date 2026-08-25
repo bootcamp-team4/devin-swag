@@ -33,7 +33,7 @@ class FakeStorage implements StorageLike {
 }
 
 const design = (overrides: Partial<Design> = {}): Design =>
-  createDesign({ layers: [{ id: "layer-1", markId: "cognition", x: 0.5, y: 0.5, scale: 0.4, rotation: 0 }], ...overrides });
+  createDesign({ layers: [{ id: "layer-1", markId: "cognition", side: "front", x: 0.5, y: 0.5, scale: 0.4, rotation: 0 }], ...overrides });
 
 const seed = (backing: FakeStorage, designs: unknown[], version: number = STORAGE_VERSION) => {
   backing.map.set(DESIGNS_KEY, JSON.stringify({ version, designs }));

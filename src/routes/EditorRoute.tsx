@@ -5,6 +5,7 @@ import EditorCanvas from "../components/editor/EditorCanvas.tsx";
 import GarmentPicker from "../components/editor/GarmentPicker.tsx";
 import LayerControls from "../components/editor/LayerControls.tsx";
 import { useDocumentTitle } from "../components/useDocumentTitle.ts";
+import { SIDES } from "../lib/design.ts";
 import { createLocalDesignStore, StorageQuotaError } from "../lib/store.ts";
 import { designReducer, initialEditorState } from "../state/designReducer.ts";
 
@@ -25,7 +26,7 @@ export default function EditorRoute() {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
-  const { design } = state;
+  const { design, currentSide } = state;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -90,6 +91,28 @@ export default function EditorRoute() {
               dispatch({ type: "setColour", colour });
             }}
           />
+          <section aria-label="Garment side" className="flex flex-col gap-2">
+            <h2 className="text-sm font-medium">Side</h2>
+            <div className="grid grid-cols-2 gap-2">
+              {SIDES.map((side) => (
+                <button
+                  key={side}
+                  type="button"
+                  aria-pressed={side === currentSide}
+                  onClick={() => dispatch({ type: "setSide", side })}
+                  className={[
+                    "rounded-sm border px-3 py-2 text-sm font-medium capitalize",
+                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink",
+                    side === currentSide
+                      ? "border-ink bg-ink text-paper"
+                      : "border-rule text-ink hover:border-ink",
+                  ].join(" ")}
+                >
+                  {side}
+                </button>
+              ))}
+            </div>
+          </section>
           <ArtworkTray state={state} dispatch={dispatch} canvasRef={canvasRef} />
           <section aria-label="Selected artwork">
             <LayerControls state={state} dispatch={dispatch} />
@@ -111,7 +134,7 @@ export default function EditorRoute() {
             >
               Save design
             </button>
-            <DownloadButton design={design} />
+            <DownloadButton design={design} side={currentSide} />
             <p role="status" aria-live="polite" className="text-xs text-muted">
               {status}
             </p>

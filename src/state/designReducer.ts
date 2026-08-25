@@ -14,11 +14,14 @@ import {
   type Garment,
   type Layer,
   type MarkId,
+  type Side,
 } from "../lib/design.ts";
 import { fitDesignToGarment } from "../lib/fitDesignToGarment.ts";
 
 export type EditorState = {
   design: Design;
+  /** Front or back of the garment being edited. */
+  currentSide: Side;
   /** T6 hangs transform handles off this; null means nothing is selected. */
   selectedLayerId: string | null;
 };
@@ -40,6 +43,7 @@ export type DesignAction =
   | { type: "duplicateLayer"; id: string }
   | { type: "setGarment"; garment: Garment }
   | { type: "setColour"; colour: Colourway }
+  | { type: "setSide"; side: Side }
   | { type: "setName"; name: string }
   | { type: "loadDesign"; design: Design };
 
@@ -47,7 +51,7 @@ export type DesignAction =
 const DUPLICATE_OFFSET = 0.08;
 
 export function initialEditorState(design: Design = createDesign()): EditorState {
-  return { design, selectedLayerId: null };
+  return { design, selectedLayerId: null, currentSide: "front" };
 }
 
 function withLayers(state: EditorState, layers: Layer[]): Design {
@@ -69,10 +73,11 @@ function mapLayer(state: EditorState, id: string, change: (layer: Layer) => Laye
 export function designReducer(state: EditorState, action: DesignAction): EditorState {
   switch (action.type) {
     case "addLayer": {
-      const layer = createLayer(action.markId, state.design.garment, action.at);
+      const layer = createLayer(action.markId, state.design.garment, action.at, state.currentSide);
       return {
         design: withLayers(state, [...state.design.layers, layer]),
         selectedLayerId: layer.id,
+        currentSide: state.currentSide,
       };
     }
 
@@ -101,7 +106,10 @@ export function designReducer(state: EditorState, action: DesignAction): EditorS
       return mapLayer(state, action.id, (layer) => ({ ...layer, rotation: action.rotation }));
 
     case "selectLayer": {
-      if (action.id !== null && !state.design.layers.some((layer) => layer.id === action.id)) {
+      if (
+        action.id !== null &&
+        !state.design.layers.some((layer) => layer.id === action.id && layer.side === state.currentSide)
+      ) {
         return state;
       }
       return { ...state, selectedLayerId: action.id };
@@ -111,6 +119,7 @@ export function designReducer(state: EditorState, action: DesignAction): EditorS
       const layers = state.design.layers.filter((layer) => layer.id !== action.id);
       if (layers.length === state.design.layers.length) return state;
       return {
+        ...state,
         design: withLayers(state, layers),
         selectedLayerId: state.selectedLayerId === action.id ? null : state.selectedLayerId,
       };
@@ -140,7 +149,7 @@ export function designReducer(state: EditorState, action: DesignAction): EditorS
       );
       const layers = [...state.design.layers];
       layers.splice(index + 1, 0, copy);
-      return { design: withLayers(state, layers), selectedLayerId: copy.id };
+      return { ...state, design: withLayers(state, layers), selectedLayerId: copy.id };
     }
 
     case "setGarment": {
@@ -153,10 +162,21 @@ export function designReducer(state: EditorState, action: DesignAction): EditorS
     case "setColour":
       return { ...state, design: { ...state.design, colour: action.colour } };
 
+    case "setSide": {
+      const next = { ...state, currentSide: action.side };
+      if (
+        next.selectedLayerId !== null &&
+        !next.design.layers.some((layer) => layer.id === next.selectedLayerId && layer.side === action.side)
+      ) {
+        next.selectedLayerId = null;
+      }
+      return next;
+    }
+
     case "setName":
       return { ...state, design: { ...state.design, name: action.name } };
 
     case "loadDesign":
-      return { design: reclampDesign(action.design), selectedLayerId: null };
+      return { design: reclampDesign(action.design), selectedLayerId: null, currentSide: "front" };
   }
 }

@@ -15,6 +15,7 @@ import {
   type Garment,
   type Layer,
   type MarkId,
+  type Side,
 } from "./design.ts";
 import { GARMENT_PARTS, UNIT, type GarmentPart } from "./garment-paths.ts";
 import {
@@ -135,29 +136,31 @@ function markToScene(layer: Layer, design: Design, size: number, ink: string): S
   };
 }
 
-const PLACEMENT: Record<Garment, string> = {
-  tshirt: "on the front chest",
-  hoodie: "on the front chest",
-  cap: "on the front panel",
+const PLACEMENT: Record<Garment, Record<Side, string>> = {
+  tshirt: { front: "on the front chest", back: "on the back" },
+  hoodie: { front: "on the front chest", back: "on the back" },
+  cap: { front: "on the front panel", back: "on the back" },
 };
 
 /** "Black t-shirt with the Devin logo on the front chest". */
-export function describeDesign(design: Design): string {
+export function describeDesign(design: Design, side: Side = "front"): string {
   const blank = `${design.colour === "black" ? "Black" : "White"} ${GARMENT_LABELS[
     design.garment
   ].toLowerCase()}`;
-  if (design.layers.length === 0) return `Blank ${blank.toLowerCase()}`;
-  const names = design.layers.map((layer) => `the ${MARK_LABELS[layer.markId]}`);
+  const sideLayers = design.layers.filter((layer) => layer.side === side);
+  if (sideLayers.length === 0) return `Blank ${blank.toLowerCase()}`;
+  const names = sideLayers.map((layer) => `the ${MARK_LABELS[layer.markId]}`);
   const list =
     names.length === 1
       ? names[0]
       : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-  return `${blank} with ${list} ${PLACEMENT[design.garment]}`;
+  return `${blank} with ${list} ${PLACEMENT[design.garment][side]}`;
 }
 
 /** The whole renderer: a design plus a pixel size in, plain scene data out. */
-export function renderDesign(design: Design, size: number): Scene {
+export function renderDesign(design: Design, size: number, side: Side = "front"): Scene {
   const palette = PALETTES[design.colour];
+  const sideLayers = design.layers.filter((layer) => layer.side === side);
   return {
     size,
     garment: design.garment,
@@ -166,9 +169,9 @@ export function renderDesign(design: Design, size: number): Scene {
     unitScale: size / UNIT,
     parts: GARMENT_PARTS[design.garment].map((part) => partToPath(part, palette)),
     // z-order is array order, so the scene keeps it: last mark paints last.
-    marks: design.layers.map((layer) => markToScene(layer, design, size, palette.ink)),
+    marks: sideLayers.map((layer) => markToScene(layer, design, size, palette.ink)),
     printable: printableRect(design.garment, size),
-    title: describeDesign(design),
+    title: describeDesign(design, side),
   };
 }
 

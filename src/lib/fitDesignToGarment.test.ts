@@ -9,7 +9,7 @@ import {
 import { fitDesignToGarment, fitLayerToGarment } from "./fitDesignToGarment.ts";
 
 function layer(overrides: Partial<Layer> = {}): Layer {
-  return { id: "l1", markId: "cognition", x: 0.5, y: 0.5, scale: 0.5, rotation: 0, ...overrides };
+  return { id: "l1", markId: "cognition", side: "front", x: 0.5, y: 0.5, scale: 0.5, rotation: 0, ...overrides };
 }
 
 describe("fitDesignToGarment", () => {

@@ -6,7 +6,7 @@
 // Blob. Every mark in the scene is already an inlined base64 data URI; an SVG
 // rasterised through an Image will not fetch external hrefs, so an external
 // reference would silently export a blank garment.
-import type { Design } from "./design.ts";
+import type { Design, Side } from "./design.ts";
 import { renderDesign, toSvgString } from "./render.ts";
 
 export const EXPORT_SIZE = 2000;
@@ -28,7 +28,7 @@ function svgToDataUri(svg: string): string {
 }
 
 /** "Otter hoodie!" -> "otter-hoodie". Never empty, never a path. */
-export function pngFileName(name: string): string {
+export function pngFileName(name: string, side: Side = "front"): string {
   const slug = name
     .normalize("NFKD")
     .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
@@ -36,7 +36,7 @@ export function pngFileName(name: string): string {
     .toLowerCase()
     .slice(0, 60)
     .replace(/-+$/g, "");
-  return `${slug || "design"}.png`;
+  return `${slug || "design"}${side === "front" ? "" : "-back"}.png`;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -48,9 +48,13 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Rasterise a design into a square PNG blob. */
-export async function designToPngBlob(design: Design, size: number = EXPORT_SIZE): Promise<Blob> {
-  const svg = toSvgString(renderDesign(design, size));
+/** Rasterise a design side into a square PNG blob. */
+export async function designToPngBlob(
+  design: Design,
+  side: Side = "front",
+  size: number = EXPORT_SIZE,
+): Promise<Blob> {
+  const svg = toSvgString(renderDesign(design, size, side));
   if (!hasOnlyInlinedMarks(svg)) {
     throw new Error("Artwork is not inlined, so the mockup would export blank.");
   }
@@ -71,12 +75,12 @@ export async function designToPngBlob(design: Design, size: number = EXPORT_SIZE
 }
 
 /** Rasterise the design and hand the PNG to the browser as a download. */
-export async function downloadDesignPng(design: Design): Promise<void> {
-  const blob = await designToPngBlob(design);
+export async function downloadDesignPng(design: Design, side: Side = "front"): Promise<void> {
+  const blob = await designToPngBlob(design, side);
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = pngFileName(design.name);
+  anchor.download = pngFileName(design.name, side);
   document.body.append(anchor);
   anchor.click();
   anchor.remove();

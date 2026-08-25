@@ -7,7 +7,7 @@ const OLDER = {
   name: "Older tee",
   garment: "tshirt",
   colour: "black",
-  layers: [{ id: "l1", markId: "devin", x: 0.5, y: 0.4, scale: 0.5, rotation: 0 }],
+  layers: [{ id: "l1", markId: "devin", side: "front", x: 0.5, y: 0.4, scale: 0.5, rotation: 0 }],
   updatedAt: "2026-01-01T10:00:00.000Z",
 };
 
@@ -16,7 +16,7 @@ const NEWER = {
   name: "Newer hoodie",
   garment: "hoodie",
   colour: "white",
-  layers: [{ id: "l2", markId: "otter", x: 0.5, y: 0.5, scale: 0.6, rotation: 12 }],
+  layers: [{ id: "l2", markId: "otter", side: "front", x: 0.5, y: 0.5, scale: 0.6, rotation: 12 }],
   updatedAt: "2026-06-01T10:00:00.000Z",
 };
 
