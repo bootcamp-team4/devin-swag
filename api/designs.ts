@@ -45,7 +45,13 @@ async function ready(): Promise<Pool> {
          updated_at timestamptz NOT NULL DEFAULT now()
        )`,
     )
-    .then(() => undefined);
+    .then(() => undefined)
+    // A cached rejection would wedge every later request on this warm instance,
+    // so a transient failure is forgotten and retried on the next request.
+    .catch((error: unknown) => {
+      schemaReady = null;
+      throw error;
+    });
   await schemaReady;
   return db;
 }
