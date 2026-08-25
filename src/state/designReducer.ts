@@ -127,8 +127,17 @@ export function designReducer(state: EditorState, action: DesignAction): EditorS
 
     case "reorderLayer": {
       const from = state.design.layers.findIndex((layer) => layer.id === action.id);
-      const to = action.direction === "up" ? from + 1 : from - 1;
-      if (from === -1 || to < 0 || to >= state.design.layers.length) return state;
+      if (from === -1) return state;
+      // Only the layers on one side are painted, so swapping with the immediate
+      // array neighbour can leave the visible order untouched. Swap with the
+      // nearest neighbour that shares the layer's side instead.
+      const { side } = state.design.layers[from];
+      const step = action.direction === "up" ? 1 : -1;
+      let to = from + step;
+      while (to >= 0 && to < state.design.layers.length && state.design.layers[to].side !== side) {
+        to += step;
+      }
+      if (to < 0 || to >= state.design.layers.length) return state;
       const layers = [...state.design.layers];
       [layers[from], layers[to]] = [layers[to], layers[from]];
       return { ...state, design: withLayers(state, layers) };

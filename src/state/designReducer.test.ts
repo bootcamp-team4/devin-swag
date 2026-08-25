@@ -97,6 +97,24 @@ describe("designReducer", () => {
     expect(designReducer(base, { type: "reorderLayer", id: "a", direction: "down" })).toBe(base);
   });
 
+  it("reorders past layers on the other side, which are not painted", () => {
+    const base: EditorState = {
+      design: createDesign({
+        layers: [
+          { id: "a", markId: "devin", side: "front", x: 0.5, y: 0.5, scale: 0.3, rotation: 0 },
+          { id: "back", markId: "otter", side: "back", x: 0.5, y: 0.5, scale: 0.3, rotation: 0 },
+          { id: "b", markId: "cognition", side: "front", x: 0.5, y: 0.5, scale: 0.3, rotation: 0 },
+        ],
+      }),
+      selectedLayerId: null,
+      currentSide: "front",
+    };
+    const up = designReducer(base, { type: "reorderLayer", id: "a", direction: "up" });
+    expect(up.design.layers.map((layer) => layer.id)).toEqual(["b", "back", "a"]);
+    expect(designReducer(base, { type: "reorderLayer", id: "a", direction: "down" })).toBe(base);
+    expect(designReducer(base, { type: "reorderLayer", id: "back", direction: "up" })).toBe(base);
+  });
+
   it("duplicates a layer above the original, offset and clamped", () => {
     const state = run(withLayer(), { type: "duplicateLayer", id: "l1" });
     const [original, copy] = state.design.layers;

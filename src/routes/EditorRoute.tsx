@@ -6,7 +6,8 @@ import GarmentPicker from "../components/editor/GarmentPicker.tsx";
 import LayerControls from "../components/editor/LayerControls.tsx";
 import { useDocumentTitle } from "../components/useDocumentTitle.ts";
 import { SIDES } from "../lib/design.ts";
-import { createLocalDesignStore, StorageQuotaError } from "../lib/store.ts";
+import { createSharedDesignStore } from "../lib/sharedStore.ts";
+import { StorageQuotaError } from "../lib/store.ts";
 import { designReducer, initialEditorState } from "../state/designReducer.ts";
 
 /** Editor canvas size in pixels; the design itself is resolution-independent. */
@@ -17,7 +18,7 @@ const AUTOSAVE_DELAY = 400;
 
 export default function EditorRoute() {
   useDocumentTitle("Editor");
-  const store = useMemo(() => createLocalDesignStore(), []);
+  const store = useMemo(() => createSharedDesignStore(), []);
   // The gallery hands a design over by writing it to the draft slot, so the
   // draft is also how "open in the editor" arrives.
   const [state, dispatch] = useReducer(designReducer, undefined, () =>
@@ -43,11 +44,16 @@ export default function EditorRoute() {
     return () => clearTimeout(timer);
   }, [design, store]);
 
-  const onSave = useCallback(() => {
+  const onSave = useCallback(async () => {
+    setStatus("Saving…");
     try {
-      const saved = store.save(design);
+      const saved = await store.save(design);
       store.saveDraft(saved);
-      setStatus(`Saved “${saved.name}” to My designs.`);
+      setStatus(
+        store.mode() === "shared"
+          ? `Saved “${saved.name}” to Saved designs, visible to everyone.`
+          : `Saved “${saved.name}” to Saved designs in this browser — the shared gallery is unavailable.`,
+      );
     } catch (error) {
       setStatus(
         error instanceof StorageQuotaError
@@ -131,7 +137,7 @@ export default function EditorRoute() {
             </label>
             <button
               type="button"
-              onClick={onSave}
+              onClick={() => void onSave()}
               className="self-start rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper shadow-sm transition-colors hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               Save design

@@ -23,7 +23,7 @@ npm run dev      # http://localhost:5173
    Artwork cannot leave the garment's printable area.
 4. Name the design and press **Save design**. Work in progress autosaves to the same browser, so a
    reload picks up where you left off.
-5. **My designs** lists everything saved in this browser — open, rename, duplicate, or delete.
+5. **Saved designs** lists every design anyone has saved — open, rename, duplicate, or delete.
 6. **Download PNG** writes a 2000×2000 mockup of the garment. It is a mockup for sharing, not a
    print-ready file.
 
@@ -31,8 +31,13 @@ Everything above works from the keyboard: Tab reaches the tray and the artwork, 
 mark, arrows move it (Shift for bigger steps), `+`/`-` scale, `[`/`]` rotate, Delete removes, and
 Escape deselects. The same transforms are buttons under **Selected artwork**.
 
-Designs live in this browser's `localStorage` only. There is no account, no server, and nothing
-leaves the machine — clearing site data deletes the designs.
+Saved designs live in a shared Postgres table behind `/api/designs`, so everyone sees everyone
+else's work; there are no accounts, and anyone can rename or delete any design. The in-progress
+autosave stays in this browser's `localStorage`.
+
+With no `DATABASE_URL` set — the default for a fresh clone — the API answers 503 and the app falls
+back to `localStorage`, so `npm run dev` still works with no services and no accounts. See
+[`docs/DEPLOY_VERCEL.md`](docs/DEPLOY_VERCEL.md) for pointing it at a database and deploying.
 
 ## Checks
 
@@ -69,7 +74,9 @@ Dependencies point downward only — nothing in `src/lib` may import from `src/c
 |---|---|
 | `src/lib/design.ts` | `Design`/`Layer` types, printable-area geometry, clamping. Pure. |
 | `src/lib/render.ts` | `renderDesign(design, size) → Scene`, with `toReactSvg` and `toSvgString` adapters. |
-| `src/lib/store.ts` | `DesignStore` over `localStorage`. |
+| `src/lib/store.ts` | The `DesignStore` interface, and the `localStorage` implementation of it. |
+| `src/lib/sharedStore.ts` | `DesignStore` over `/api/designs`, falling back to `localStorage`. |
+| `api/designs.ts` | The shared gallery: one Vercel Function over one Postgres table. |
 | `src/state/designReducer.ts` | Editor state as a reducer, so undo/redo stays cheap. |
 | `src/components/editor/*` | React + Pointer Events: tray, drag, handles, picker. |
 | `src/routes/*` | `/` editor, `/designs` gallery, and a dev-only `/contact-sheet`. |

@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 
 const NAV_LINKS = [
   { to: "/", label: "Editor" },
-  { to: "/designs", label: "My designs" },
+  { to: "/designs", label: "Saved designs" },
 ];
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
@@ -49,7 +49,7 @@ export default function AppLayout() {
       </main>
       <footer className="border-t border-rule bg-paper">
         <div className="mx-auto w-full max-w-[90rem] px-6 py-4 text-sm text-muted">
-          Designs are saved in this browser only. Downloads are mockups, not production artwork.
+          Saved designs are shared with everyone. Downloads are mockups, not production artwork.
         </div>
       </footer>
     </div>

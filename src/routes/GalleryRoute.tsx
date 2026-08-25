@@ -10,43 +10,49 @@ import {
 } from "../components/gallery/actions.ts";
 import { useDocumentTitle } from "../components/useDocumentTitle.ts";
 import type { Design } from "../lib/design.ts";
-import { createLocalDesignStore, type DesignStore } from "../lib/store.ts";
+import { createSharedDesignStore, type SharedDesignStore } from "../lib/sharedStore.ts";
 
-/** `null` while the store has not been read yet — localStorage is read after first paint. */
+/** `null` while the store has not been read yet — the gallery loads after first paint. */
 type Designs = Design[] | null;
 
-export default function GalleryRoute({ store }: { store?: DesignStore }) {
-  useDocumentTitle("My designs");
+export default function GalleryRoute({ store }: { store?: SharedDesignStore }) {
+  useDocumentTitle("Saved designs");
   const navigate = useNavigate();
-  const designStore = useMemo(() => store ?? createLocalDesignStore(), [store]);
+  const designStore = useMemo(() => store ?? createSharedDesignStore(), [store]);
   const [designs, setDesigns] = useState<Designs>(null);
+  const [shared, setShared] = useState(true);
 
-  const refresh = useCallback(() => setDesigns(listDesigns(designStore)), [designStore]);
+  const refresh = useCallback(async () => {
+    const listed = await listDesigns(designStore);
+    setDesigns(listed);
+    setShared(designStore.mode() === "shared");
+  }, [designStore]);
 
   useEffect(() => {
-    refresh();
-    return designStore.subscribe(refresh);
+    void refresh();
+    return designStore.subscribe(() => void refresh());
   }, [designStore, refresh]);
 
-  const handleOpen = (design: Design) => {
-    openInEditor(designStore, design.id);
+  const handleOpen = async (design: Design) => {
+    await openInEditor(designStore, design.id);
     void navigate("/");
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">My designs</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Saved designs</h1>
         <p className="mt-1 max-w-2xl text-base text-muted">
-          Designs are stored in this browser only — clearing site data removes them. Download a PNG
-          to keep a copy.
+          {shared
+            ? "Everyone shares this gallery: every design saved here is visible to everyone, and anyone can open, rename, or delete it."
+            : "The shared gallery is unavailable, so these are the designs saved in this browser only."}
         </p>
       </div>
 
       <section aria-label="Saved designs">
         {designs === null ? (
           <p className="text-sm text-muted" role="status">
-            Loading your designs…
+            Loading saved designs…
           </p>
         ) : designs.length === 0 ? (
           <div className="rounded-2xl border border-rule bg-paper p-8 text-center shadow-sm">
@@ -67,18 +73,15 @@ export default function GalleryRoute({ store }: { store?: DesignStore }) {
               <DesignCard
                 key={design.id}
                 design={design}
-                onOpen={handleOpen}
+                onOpen={(target) => void handleOpen(target)}
                 onRename={(target, name) => {
-                  renameDesign(designStore, target.id, name);
-                  refresh();
+                  void renameDesign(designStore, target.id, name).then(refresh);
                 }}
                 onDuplicate={(target) => {
-                  duplicateDesign(designStore, target.id);
-                  refresh();
+                  void duplicateDesign(designStore, target.id).then(refresh);
                 }}
                 onDelete={(target) => {
-                  deleteDesign(designStore, target.id);
-                  refresh();
+                  void deleteDesign(designStore, target.id).then(refresh);
                 }}
               />
             ))}
