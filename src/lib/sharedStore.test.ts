@@ -5,7 +5,9 @@ import { createLocalDesignStore, type StorageLike } from "./store";
 
 const design = (overrides: Partial<Design> = {}): Design =>
   createDesign({
-    layers: [{ id: "layer-1", markId: "cognition", x: 0.5, y: 0.5, scale: 0.4, rotation: 0 }],
+    layers: [
+      { id: "layer-1", markId: "cognition", side: "front", x: 0.5, y: 0.5, scale: 0.4, rotation: 0 },
+    ],
     ...overrides,
   });
 
