@@ -47,7 +47,9 @@ export default defineConfig(({ mode }) => {
   // DATABASE_URL is server-side, so it is read here rather than exposed to the
   // client through import.meta.env.
   const env = loadEnv(mode, process.cwd(), "");
-  process.env.DATABASE_URL ??= env.DATABASE_URL;
+  // Assigning undefined would store the string "undefined", which reads as a
+  // configured database and turns the fast 503 into a connection failure.
+  if (env.DATABASE_URL) process.env.DATABASE_URL ??= env.DATABASE_URL;
 
   return {
     plugins: [react(), tailwindcss(), designsApi()],
