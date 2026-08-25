@@ -3,7 +3,7 @@ import { COLOURWAYS, GARMENTS, createDesign, type Design, type Layer } from "./d
 import { PALETTES, renderDesign, toReactSvg, toSvgString, type Scene } from "./render.ts";
 
 function layer(overrides: Partial<Layer> = {}): Layer {
-  return { id: "l1", markId: "devin", x: 0.5, y: 0.5, scale: 0.6, rotation: 0, ...overrides };
+  return { id: "l1", markId: "devin", side: "front", x: 0.5, y: 0.5, scale: 0.6, rotation: 0, ...overrides };
 }
 
 function design(overrides: Partial<Design> = {}): Design {

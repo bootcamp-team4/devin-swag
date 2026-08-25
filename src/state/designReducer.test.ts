@@ -20,8 +20,8 @@ function run(state: EditorState, ...actions: DesignAction[]): EditorState {
 }
 
 function withLayer(layer: Partial<Layer> = {}, design: Partial<Design> = {}): EditorState {
-  const full: Layer = { id: "l1", markId: "cognition", x: 0.5, y: 0.5, scale: 0.4, rotation: 0, ...layer };
-  return { design: createDesign({ layers: [full], ...design }), selectedLayerId: "l1" };
+  const full: Layer = { id: "l1", markId: "cognition", side: "front", x: 0.5, y: 0.5, scale: 0.4, rotation: 0, ...layer };
+  return { design: createDesign({ layers: [full], ...design }), selectedLayerId: "l1", currentSide: "front" };
 }
 
 /** How far a layer's centre can travel before its box leaves the printable area. */
@@ -85,15 +85,34 @@ describe("designReducer", () => {
     const base: EditorState = {
       design: createDesign({
         layers: [
-          { id: "a", markId: "devin", x: 0.5, y: 0.5, scale: 0.3, rotation: 0 },
-          { id: "b", markId: "otter", x: 0.5, y: 0.5, scale: 0.3, rotation: 0 },
+          { id: "a", markId: "devin", side: "front", x: 0.5, y: 0.5, scale: 0.3, rotation: 0 },
+          { id: "b", markId: "otter", side: "front", x: 0.5, y: 0.5, scale: 0.3, rotation: 0 },
         ],
       }),
       selectedLayerId: null,
+      currentSide: "front",
     };
     const up = designReducer(base, { type: "reorderLayer", id: "a", direction: "up" });
     expect(up.design.layers.map((layer) => layer.id)).toEqual(["b", "a"]);
     expect(designReducer(base, { type: "reorderLayer", id: "a", direction: "down" })).toBe(base);
+  });
+
+  it("reorders past layers on the other side, which are not painted", () => {
+    const base: EditorState = {
+      design: createDesign({
+        layers: [
+          { id: "a", markId: "devin", side: "front", x: 0.5, y: 0.5, scale: 0.3, rotation: 0 },
+          { id: "back", markId: "otter", side: "back", x: 0.5, y: 0.5, scale: 0.3, rotation: 0 },
+          { id: "b", markId: "cognition", side: "front", x: 0.5, y: 0.5, scale: 0.3, rotation: 0 },
+        ],
+      }),
+      selectedLayerId: null,
+      currentSide: "front",
+    };
+    const up = designReducer(base, { type: "reorderLayer", id: "a", direction: "up" });
+    expect(up.design.layers.map((layer) => layer.id)).toEqual(["b", "back", "a"]);
+    expect(designReducer(base, { type: "reorderLayer", id: "a", direction: "down" })).toBe(base);
+    expect(designReducer(base, { type: "reorderLayer", id: "back", direction: "up" })).toBe(base);
   });
 
   it("duplicates a layer above the original, offset and clamped", () => {
@@ -151,7 +170,7 @@ describe("designReducer", () => {
       type: "loadDesign",
       design: createDesign({
         garment: "cap",
-        layers: [{ id: "x", markId: "otter", x: 3, y: 0.5, scale: 0.5, rotation: 0 }],
+        layers: [{ id: "x", markId: "otter", side: "front", x: 3, y: 0.5, scale: 0.5, rotation: 0 }],
       }),
     });
     expect(loaded.selectedLayerId).toBeNull();

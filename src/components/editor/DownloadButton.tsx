@@ -1,14 +1,15 @@
 import { useState } from "react";
-import type { Design } from "../../lib/design.ts";
+import type { Design, Side } from "../../lib/design.ts";
 import { downloadDesignPng } from "../../lib/export.ts";
 
 type DownloadButtonProps = {
   design: Design;
+  side: Side;
   className?: string;
 };
 
-/** Downloads a 2000x2000 PNG mockup of the design. Busy while rasterising. */
-export default function DownloadButton({ design, className }: DownloadButtonProps) {
+/** Downloads a 2000x2000 PNG mockup of the current side. Busy while rasterising. */
+export default function DownloadButton({ design, side, className }: DownloadButtonProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,7 +17,7 @@ export default function DownloadButton({ design, className }: DownloadButtonProp
     setBusy(true);
     setError(null);
     try {
-      await downloadDesignPng(design);
+      await downloadDesignPng(design, side);
     } catch {
       setError("Could not create the mockup. Try again.");
     } finally {

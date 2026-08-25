@@ -43,7 +43,7 @@ function seed(name: string, updatedAt: string): Design {
   return createDesign({
     name,
     updatedAt,
-    layers: [{ id: `${name}-l1`, markId: "devin", x: 0.5, y: 0.5, scale: 0.4, rotation: 0 }],
+    layers: [{ id: `${name}-l1`, markId: "devin", side: "front", x: 0.5, y: 0.5, scale: 0.4, rotation: 0 }],
   });
 }
 

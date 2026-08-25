@@ -13,7 +13,9 @@ const BUTTON =
 type Props = { state: EditorState; dispatch: Dispatch<DesignAction> };
 
 export default function LayerControls({ state, dispatch }: Props) {
-  const selected = state.design.layers.find((layer) => layer.id === state.selectedLayerId);
+  const selected = state.design.layers.find(
+    (layer) => layer.id === state.selectedLayerId && layer.side === state.currentSide,
+  );
 
   if (!selected) {
     return (

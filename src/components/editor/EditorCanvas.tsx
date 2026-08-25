@@ -35,12 +35,12 @@ type Props = {
 };
 
 export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props) {
-  const { design, selectedLayerId } = state;
+  const { design, selectedLayerId, currentSide } = state;
   // Where inside the artwork the drag started, so it does not jump to centre.
   const grab = useRef<{ x: number; y: number } | null>(null);
   const transform = useRef<"scale" | "rotate" | null>(null);
 
-  const scene = renderDesign(design, size);
+  const scene = renderDesign(design, size, currentSide);
 
   // Placing a mark hands the keyboard the thing that was just placed, so arrow
   // keys and Delete work without hunting for it with Tab.
@@ -95,7 +95,9 @@ export default function EditorCanvas({ state, dispatch, size, canvasRef }: Props
     };
   }
 
-  const selected = design.layers.find((layer) => layer.id === selectedLayerId);
+  const selected = design.layers.find(
+    (layer) => layer.id === selectedLayerId && layer.side === currentSide,
+  );
   const box = selected ? layerBox(selected, design.garment, size) : null;
 
   /** Pointer position in canvas pixels, measured from the artwork's centre. */
