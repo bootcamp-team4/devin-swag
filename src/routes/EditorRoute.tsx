@@ -97,9 +97,11 @@ export default function EditorRoute() {
               dispatch({ type: "setColour", colour });
             }}
           />
-          <section aria-label="Garment side" className="flex flex-col gap-2">
+          {/* One compact row: a taller block pushes the artwork tray below the
+              fold on a 720px-high laptop viewport. */}
+          <section aria-label="Garment side" className="flex items-center gap-2">
             <h2 className="text-sm font-medium">Side</h2>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid flex-1 grid-cols-2 gap-2">
               {SIDES.map((side) => (
                 <button
                   key={side}
@@ -107,7 +109,7 @@ export default function EditorRoute() {
                   aria-pressed={side === currentSide}
                   onClick={() => dispatch({ type: "setSide", side })}
                   className={[
-                    "rounded-sm border px-3 py-2 text-sm font-medium capitalize",
+                    "rounded-sm border px-3 py-1 text-sm font-medium capitalize",
                     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink",
                     side === currentSide
                       ? "border-ink bg-ink text-paper"
