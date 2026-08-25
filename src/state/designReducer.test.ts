@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   MARK_ASPECT,
+  MIN_SCALE,
   PRINTABLE_AREAS,
+  maxScaleFor,
   createDesign,
   type Design,
   type Layer,
@@ -109,6 +111,36 @@ describe("designReducer", () => {
     const layer = state.design.layers[0];
     expect(state.design.garment).toBe("cap");
     expect(layer.y).toBeCloseTo(1 - limits(layer, "cap").y, 6);
+  });
+
+  it("scales a layer, but never past what the garment's printable area holds", () => {
+    const grown = run(withLayer(), { type: "scaleLayer", id: "l1", scale: 0.6 });
+    expect(grown.design.layers[0].scale).toBeCloseTo(0.6, 6);
+
+    const capped = run(withLayer(), { type: "scaleLayer", id: "l1", scale: 5 });
+    expect(capped.design.layers[0].scale).toBeLessThanOrEqual(
+      maxScaleFor(capped.design.layers[0], "tshirt") + 1e-9,
+    );
+
+    const floored = run(withLayer(), { type: "scaleLayer", id: "l1", scale: -1 });
+    expect(floored.design.layers[0].scale).toBe(MIN_SCALE);
+  });
+
+  it("rotates a layer, normalising the angle and keeping the rotated box inside", () => {
+    const spun = run(withLayer({ markId: "devin" }), {
+      type: "rotateLayer",
+      id: "l1",
+      rotation: -90,
+    });
+    expect(spun.design.layers[0].rotation).toBe(270);
+
+    // A 90° turn makes the wide Devin lockup tall, so it has to move inward.
+    const edge = run(withLayer({ markId: "devin", y: 0.99 }), {
+      type: "rotateLayer",
+      id: "l1",
+      rotation: 90,
+    });
+    expect(edge.design.layers[0].y).toBeLessThan(0.99);
   });
 
   it("sets the colour and loads a design, re-clamping and dropping the selection", () => {

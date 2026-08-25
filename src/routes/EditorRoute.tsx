@@ -3,6 +3,7 @@ import ArtworkTray from "../components/editor/ArtworkTray.tsx";
 import DownloadButton from "../components/editor/DownloadButton.tsx";
 import EditorCanvas from "../components/editor/EditorCanvas.tsx";
 import GarmentPicker from "../components/editor/GarmentPicker.tsx";
+import LayerControls from "../components/editor/LayerControls.tsx";
 import { useDocumentTitle } from "../components/useDocumentTitle.ts";
 import { createLocalDesignStore, StorageQuotaError } from "../lib/store.ts";
 import { designReducer, initialEditorState } from "../state/designReducer.ts";
@@ -60,8 +61,9 @@ export default function EditorRoute() {
       <div>
         <h1 className="text-xl font-semibold tracking-tight">Editor</h1>
         <p className="mt-1 text-sm text-muted">
-          Drag artwork onto the garment, then drag it to move it. Arrow keys nudge the selected
-          artwork, Delete removes it, Escape deselects.
+          Drag artwork onto the garment, then drag it to move it, or use its corner handles to
+          scale and rotate. Everything is also available from the keyboard and the buttons on the
+          right.
         </p>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
@@ -89,6 +91,9 @@ export default function EditorRoute() {
             }}
           />
           <ArtworkTray state={state} dispatch={dispatch} canvasRef={canvasRef} />
+          <section aria-label="Selected artwork">
+            <LayerControls state={state} dispatch={dispatch} />
+          </section>
           <div className="flex flex-col gap-2">
             <label className="flex flex-col gap-1">
               <span className="font-medium text-ink">Design name</span>

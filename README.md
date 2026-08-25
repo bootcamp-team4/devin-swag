@@ -15,6 +15,25 @@ npm install
 npm run dev      # http://localhost:5173
 ```
 
+## Using it
+
+1. Pick a garment and a colour in the right rail (t-shirt, hoodie, or cap × black or white).
+2. Drag a mark out of the artwork tray onto the garment, or click it to drop it in the centre.
+3. Drag the artwork to move it; use its corner handle to scale and the handle above it to rotate.
+   Artwork cannot leave the garment's printable area.
+4. Name the design and press **Save design**. Work in progress autosaves to the same browser, so a
+   reload picks up where you left off.
+5. **My designs** lists everything saved in this browser — open, rename, duplicate, or delete.
+6. **Download PNG** writes a 2000×2000 mockup of the garment. It is a mockup for sharing, not a
+   print-ready file.
+
+Everything above works from the keyboard: Tab reaches the tray and the artwork, Enter places a
+mark, arrows move it (Shift for bigger steps), `+`/`-` scale, `[`/`]` rotate, Delete removes, and
+Escape deselects. The same transforms are buttons under **Selected artwork**.
+
+Designs live in this browser's `localStorage` only. There is no account, no server, and nothing
+leaves the machine — clearing site data deletes the designs.
+
 ## Checks
 
 ```bash
@@ -36,6 +55,24 @@ The inlining is not an optimisation. The PNG export rasterises a serialised SVG 
 `Image`, and that never fetches external `href`s — an export referencing `/brand/mark-otter.png`
 silently produces a blank garment. Anything on the export path must be self-contained.
 
-The two wordmark/logo marks are monochrome and carry an `__INK__` token in place of a fill, so the
-renderer can ink them in the garment's contrast colour. The otter is a full-colour raster whose
-white matte was keyed out once at asset intake, so it does not invert per colourway.
+The Cognition mark is monochrome and carries an `__INK__` token in place of a fill, so the renderer
+can ink it in the garment's contrast colour. The Devin lockup and the otter are full-colour rasters
+whose mattes were keyed out once at asset intake; Devin ships as two files, one per colourway,
+because its hexagons must not recolour.
+
+## Layout
+
+Dependencies point downward only — nothing in `src/lib` may import from `src/components` or
+`src/routes`.
+
+| | |
+|---|---|
+| `src/lib/design.ts` | `Design`/`Layer` types, printable-area geometry, clamping. Pure. |
+| `src/lib/render.ts` | `renderDesign(design, size) → Scene`, with `toReactSvg` and `toSvgString` adapters. |
+| `src/lib/store.ts` | `DesignStore` over `localStorage`. |
+| `src/state/designReducer.ts` | Editor state as a reducer, so undo/redo stays cheap. |
+| `src/components/editor/*` | React + Pointer Events: tray, drag, handles, picker. |
+| `src/routes/*` | `/` editor, `/designs` gallery, and a dev-only `/contact-sheet`. |
+
+Layer coordinates are fractions of the printable area, never pixels — that is what lets the 320px
+thumbnail, the editor canvas, and the 2000px export agree.
